@@ -1,0 +1,10 @@
+/bin/
+/.settings/
+/log/
+
+.project
+.classpath
+
+*.jar
+*.bin
+*.ini
