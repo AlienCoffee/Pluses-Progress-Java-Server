@@ -1,7 +1,7 @@
 package ru.shemplo.pluses.util.json;
 
 
-public class BytesConverter {
+public class BytesManip {
 
 	public static byte [] L2B (long value) {
 		return convert (value, 8);

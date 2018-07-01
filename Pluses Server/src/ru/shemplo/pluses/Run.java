@@ -2,6 +2,8 @@ package ru.shemplo.pluses;
 
 import static java.util.Objects.*;
 
+import java.io.File;
+
 import ru.shemplo.pluses.config.Configuration;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.struct.OrganizationTree;
@@ -11,6 +13,12 @@ import ru.shemplo.pluses.struct.OrganizationTree.ModifyAction;
 public class Run {
 
 	public static final String CONFIG_NAME = "config.ini";
+	
+	public static final File RUN_DIRECTORY;
+	static {
+		RUN_DIRECTORY = new File (".").getAbsoluteFile ().getParentFile ();
+		System.out.println ("[INFO][RUN] Server started in " + RUN_DIRECTORY);
+	}
 	
 	public static int exitCode = 1;
 	
@@ -35,7 +43,6 @@ public class Run {
 			}
 		}
 		
-		tree.writeToFile ();
 		//new Thread (() -> { while (true) {} }).start ();
 	}
 	

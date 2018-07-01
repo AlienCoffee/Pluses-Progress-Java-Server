@@ -1,12 +1,14 @@
 package ru.shemplo.pluses.struct;
 
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
+
+import ru.shemplo.pluses.Run;
+import ru.shemplo.pluses.util.FSCrawler;
 
 public final class OrganizationTree {
 	
@@ -18,22 +20,22 @@ public final class OrganizationTree {
 		return null;
 	}
 	
+	private final File CHANGE_LOG;
 	private final RootNode ROOT;
 	
 	public OrganizationTree () {
-		this.ROOT = new RootNode ();
-	}
-	
-	public void writeToFile () {
-		File backup = new File ("backup.bin");
-		
-		try (
-			OutputStream os = new FileOutputStream (backup);
-		) {
-			
-		} catch (IOException ioe) {
-			ioe.printStackTrace ();
+		String changesDirName = System.getProperty ("pluses.tree.dir");
+		File changesDir = new File (Run.RUN_DIRECTORY, changesDirName);
+		if (!changesDir.exists () || !changesDir.isDirectory ()) {
+			FSCrawler.crawl (changesDir, f -> true, 
+				f -> f.delete (), f -> f.delete ());
+			changesDir.mkdir ();
 		}
+		final String format = "dd.LL.YYYY_HH:mm:ss";
+		String name = new SimpleDateFormat (format)
+					  .format (new Date ()) + "_tree.data";
+		this.CHANGE_LOG = new File (changesDir, name);
+		this.ROOT = new RootNode ();
 	}
 	
 	public RootNode root () {

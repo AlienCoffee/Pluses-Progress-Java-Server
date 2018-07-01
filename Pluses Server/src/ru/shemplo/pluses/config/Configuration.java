@@ -23,7 +23,7 @@ public class Configuration {
 			filename = Run.CONFIG_NAME;
 		}
 		
-		File crawler = new File (".").getAbsoluteFile ();
+		File crawler = Run.RUN_DIRECTORY;
 		while (!crawler.isDirectory () && crawler.exists ()) {
 			crawler = crawler.getParentFile ();
 		}
