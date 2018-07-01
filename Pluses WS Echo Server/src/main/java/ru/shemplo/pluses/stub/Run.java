@@ -64,6 +64,30 @@ public class Run {
 					Socket wait = SOCKETS.get (name);
 					makeHandshake (name, wait);
 				}
+				
+				for (String name : SOCKETS.keySet ()) {
+					if (WAIT_HANDSHAKE.contains (name)
+						|| WAIT_REMOVED.contains (name)) {
+						continue;
+					}
+					
+					Socket socket = SOCKETS.get (name);
+					
+					try {
+						InputStream is = socket.getInputStream ();
+						if (is.available () == 0) { continue; }
+						
+						OutputStream os = socket.getOutputStream ();
+						handleInput (name, is, os);
+					} catch (IOException ioe) {
+						WAIT_REMOVED.add (name);
+					}
+				}
+				
+				while (!WAIT_REMOVED.isEmpty ()) {
+					String name = WAIT_REMOVED.poll ();
+					SOCKETS.remove (name);
+				}
 			}
 		}, "Intelligence-Thread");
 		intelligence.start ();
@@ -109,6 +133,58 @@ public class Run {
 		} catch (IOException | NoSuchAlgorithmException es) {
 			WAIT_REMOVED.add (name);
 		}
+	}
+	
+	public static void handleInput (String name, InputStream is, OutputStream os) throws IOException {
+		byte first = (byte) is.read ();
+		@SuppressWarnings ("unused")
+		int fin     = bit (first, 7);
+		@SuppressWarnings ("unused")
+		int [] rsvs = {bit (first, 6), bit (first, 5), bit (first, 4)};
+		@SuppressWarnings ("unused")
+		int opcode  = first & 0b1111;
+		// first byte parsed
+		
+		byte second = (byte) is.read ();
+		int mask    = bit (second, 7);
+		long length = second & 0b01111111;
+		// second byte parsed
+		
+		if (length == 126) {
+			byte [] buffer = new byte [2];
+			is.read (buffer, 0, buffer.length);
+			
+			length = (buffer [0] << 8) | buffer [1];
+		} else if (length == 127) {
+			byte [] buffer = new byte [8];
+			is.read (buffer, 0, buffer.length);
+			
+			length = buffer [0];
+			for (int i = 1; i < buffer.length; i++) {
+				length = (length << 8) | buffer [i];
+			}
+		}
+		
+		byte [] maskA = new byte [4];
+		if (mask == 1) {
+			is.read (maskA, 0, maskA.length);
+		}
+		
+		byte [] content = new byte [(int) length];
+		for (int i = 0; i < content.length; i++) {
+			content [i] = (byte) is.read ();
+			if (mask == 1) { 
+				content [i] ^= maskA [i % maskA.length]; 
+			}
+			
+			System.out.print ((char) content [i]);
+		}
+		
+		System.out.println ();
+	}
+	
+	private static int bit (byte number, int index) {
+		return (number & (1 << index)) >> index;
 	}
 	
 }
