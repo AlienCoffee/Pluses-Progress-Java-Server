@@ -1,5 +1,9 @@
 package ru.shemplo.pluses.stub;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -9,6 +13,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 import java.util.Objects;
+import java.util.StringTokenizer;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ConcurrentMap;
@@ -23,12 +28,16 @@ public class Run {
 	private static final ConcurrentLinkedQueue <String>
 		WAIT_REMOVED = new ConcurrentLinkedQueue <> ();
 	
+	private static final File FILE = new File ("common.txt");
+	
 	private static boolean isRunning = true;
 	
 	public static void main (String ... args) throws IOException {
 		@SuppressWarnings ("resource")
 		ServerSocket sever = new ServerSocket (1999);
 		System.out.println ("Server started");
+		
+		FILE.createNewFile ();
 		
 		Thread acceptor = new Thread (() -> {
 			Socket income = null;
@@ -176,15 +185,58 @@ public class Run {
 			if (mask == 1) { 
 				content [i] ^= maskA [i % maskA.length]; 
 			}
-			
-			System.out.print ((char) content [i]);
 		}
 		
-		System.out.println ();
+		String message = new String (content, 0, content.length);
+		StringTokenizer tokens = new StringTokenizer (message);
+		String command = tokens.nextToken ();
+		if ("exit".equals (command)) {
+			System.out.println ("Stopping server by command");
+			System.exit (0);
+			return;
+		} else if ("read".equals (command)) {
+			try (
+				InputStream read = new FileInputStream (FILE);
+			) {
+				content = new byte [read.available ()];
+				read.read (content, 0, content.length);
+				sendMessage (os, content);
+			}
+		} else if ("write".equals (command)) {
+			try (
+				OutputStream write = new FileOutputStream (FILE);
+			) {
+				while (tokens.hasMoreTokens ()) {
+					write.write (tokens.nextToken ().getBytes ());
+					write.write (' '); // Whitespace delimiter
+				}
+			}
+		} else {
+			System.out.println (message);
+		}
 	}
 	
 	private static int bit (byte number, int index) {
 		return (number & (1 << index)) >> index;
+	}
+	
+	private static void sendMessage (OutputStream os, byte [] content) throws IOException {
+		ByteArrayOutputStream builder = new ByteArrayOutputStream ();
+		builder.write (0b10000001); // FIN + RSV + Opcode
+		
+		if (content.length < 126) {
+			builder.write (content.length & 0b01111111);
+		} else if (content.length < (1 << 16)) {
+			builder.write (126);
+			builder.write ((content.length >> 8) & 0b01111111);
+			builder.write (content.length & 0b01111111);
+		} else {
+			// not supported
+		}
+		
+		builder.write (content, 0, content.length);
+		os.write (builder.toByteArray ());
+		os.flush ();
 	}
 	
 }
