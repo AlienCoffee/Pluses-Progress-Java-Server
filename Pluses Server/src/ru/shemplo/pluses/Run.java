@@ -3,12 +3,12 @@ package ru.shemplo.pluses;
 import static java.util.Objects.*;
 
 import java.io.File;
+import java.io.IOException;
 
 import ru.shemplo.pluses.config.Configuration;
 import ru.shemplo.pluses.log.Log;
-import ru.shemplo.pluses.struct.OrganizationTree;
-import ru.shemplo.pluses.struct.OrganizationTree.ClassNode;
-import ru.shemplo.pluses.struct.OrganizationTree.ModifyAction;
+import ru.shemplo.pluses.network.Acceptor;
+import ru.shemplo.pluses.network.JavaSocketAcceptor;
 
 public class Run {
 
@@ -20,11 +20,13 @@ public class Run {
 		System.out.println ("[INFO][RUN] Server started in " + RUN_DIRECTORY);
 	}
 	
+	public static boolean isRunning = true;
 	public static int exitCode = 1;
 	
 	public static void main (String ... args) {
 		Configuration.load (CONFIG_NAME);
 		
+		/*
 		OrganizationTree tree = new OrganizationTree ();
 		for (int i = 0; i < 11; i ++) {
 			tree.root ().modify (ModifyAction.INSERT, i + 5);
@@ -44,6 +46,14 @@ public class Run {
 		}
 		
 		//new Thread (() -> { while (true) {} }).start ();
+		 */
+		
+		try {
+			@SuppressWarnings ({"unused", "resource"})
+			Acceptor a = new JavaSocketAcceptor (1999, 2);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	public static void stopApplication (int code, String comment) {

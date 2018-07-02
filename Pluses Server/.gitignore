@@ -1,6 +1,7 @@
 /bin/
 /.settings/
 /log/
+/lib/
 
 .project
 .classpath

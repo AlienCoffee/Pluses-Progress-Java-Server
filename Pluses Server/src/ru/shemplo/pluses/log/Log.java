@@ -83,6 +83,10 @@ public class Log {
 		_log (LogLevel.WARNING, parent, message);
 	}
 	
+	public static void error (String parent, String message) {
+		_log (LogLevel.ERROR, parent, message);
+	}
+	
 	private static synchronized final void _log (LogLevel level, String parent, String message) {
 		if (Objects.isNull (message) || message.length () == 0) { return; }
 		
