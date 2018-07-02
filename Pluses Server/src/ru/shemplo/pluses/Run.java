@@ -4,15 +4,20 @@ import static java.util.Objects.*;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.Objects;
+import java.util.Random;
 
 import ru.shemplo.pluses.config.Configuration;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.Acceptor;
 import ru.shemplo.pluses.network.JavaSocketAcceptor;
+import ru.shemplo.pluses.network.pool.ConnectionPool;
 
 public class Run {
 
 	public static final String CONFIG_NAME = "config.ini";
+	
+	public static final Random RANDOM = new Random ();
 	
 	public static final File RUN_DIRECTORY;
 	static {
@@ -23,40 +28,28 @@ public class Run {
 	public static boolean isRunning = true;
 	public static int exitCode = 1;
 	
+	private static final Acceptor [] ACCEPTORS;
+	static {
+		ACCEPTORS = new Acceptor [2];
+	}
+	
 	public static void main (String ... args) {
 		Configuration.load (CONFIG_NAME);
 		
-		/*
-		OrganizationTree tree = new OrganizationTree ();
-		for (int i = 0; i < 11; i ++) {
-			tree.root ().modify (ModifyAction.INSERT, i + 5);
-			for (int j = 0; j < 5; j++) {
-				ClassNode node = tree.root ().classes ().get (i);
-				node.modify (ModifyAction.INSERT, j + 50);
-				for (int k = 0; k < 25; k++) {
-					tree.root ().classes ().get (i).groups ().get (j)
-						.modifyStrudents (ModifyAction.INSERT, k + 500);
-				}
-				
-				for (int k = 0; k < 20; k++) {
-					tree.root ().classes ().get (i).groups ().get (j)
-						.modifyTopics (ModifyAction.INSERT, k + 5000);
-				}
-			}
-		}
-		
-		//new Thread (() -> { while (true) {} }).start ();
-		 */
+		// Initialization of connection pool
+		ConnectionPool.getInstance ();
 		
 		try {
-			@SuppressWarnings ({"unused", "resource"})
-			Acceptor a = new JavaSocketAcceptor (1999, 2);
-		} catch (IOException e) {
-			e.printStackTrace();
+			ACCEPTORS [0] = new JavaSocketAcceptor (1999, 2);
+		} catch (IOException ioe) {
+			String message = "Failed to initialize acceptor due to:\n" + ioe;
+			Log.error (Run.class.getSimpleName (), message);
 		}
 	}
 	
 	public static void stopApplication (int code, String comment) {
+		Log.log (Run.class.getSimpleName (), "Stopping server...");
+		
 		if (code == 0) {
 			String message = isNull (comment) || comment.length () == 0
 							 ? "Application stopped normally"
@@ -69,6 +62,20 @@ public class Run {
 			System.out.flush ();
 			System.err.println (message);
 			System.err.flush ();
+		}
+		
+		isRunning = false;
+		try {
+			for (int i = 0; i < ACCEPTORS.length; i++) {
+				Acceptor acceptor = ACCEPTORS [i];
+				if (!Objects.isNull (acceptor)) {
+					acceptor.close ();
+				}
+			}
+			
+			ConnectionPool.getInstance ().close ();
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		
 		Log.close ();
