@@ -14,7 +14,12 @@ public interface AppConnection {
 		return getInputSize () > 0;
 	}
 	
-	public String getInput ();
+	/**
+	 * 
+	 * @return one message from the stream
+	 * 
+	 */
+	public String [] getInput ();
 	
 	public void update ();
 	
