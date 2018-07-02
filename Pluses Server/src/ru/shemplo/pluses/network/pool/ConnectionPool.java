@@ -53,7 +53,7 @@ public class ConnectionPool implements AutoCloseable {
 						
 						String input = null;
 						// Handling all not processed inputs
-						while ((input = connection.getInput ()) != null) {
+						while ((input = connection.getInput () [0]) != null) {
 							System.out.println (input);
 						}
 						
@@ -61,7 +61,7 @@ public class ConnectionPool implements AutoCloseable {
 					}
 					
 					tasks += connection.getInputSize ();
-					String input = connection.getInput ();
+					String input = connection.getInput () [0];
 					if (!Objects.isNull (input) && input.length () > 0) {
 						System.out.println (input);
 						tasks -= 1;
