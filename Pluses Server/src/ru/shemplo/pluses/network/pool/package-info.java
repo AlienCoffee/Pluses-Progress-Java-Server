@@ -5,4 +5,4 @@
  * @author Shemp
  *
  */
-package ru.shemplo.pluses.network.ws;
+package ru.shemplo.pluses.network.pool;

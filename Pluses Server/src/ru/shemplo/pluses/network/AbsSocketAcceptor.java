@@ -55,10 +55,10 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 					}
 				} else {
 					String identifier = identifier ();
-					handshake (identifier, socket);
-					
-					// Socket processing is over
-					onSocketReady (identifier, socket);
+					if (handshake (identifier, socket)) {
+						// Socket processing is over
+						onSocketReady (identifier, socket);
+					}
 					
 					// Keeping this thread alive
 					tries = 0;
@@ -70,10 +70,6 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 			Thread first = new Thread (TASK);
 			THREADS.add (first);
 			first.start ();
-			
-			Thread second = new Thread (TASK);
-			THREADS.add (second);
-			second.start ();
 		}
 		
 		this.ACCEPTOR = new Thread (() -> {
