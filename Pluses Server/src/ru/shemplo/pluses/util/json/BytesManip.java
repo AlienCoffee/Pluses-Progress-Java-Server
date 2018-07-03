@@ -29,4 +29,22 @@ public class BytesManip {
 		return array;
 	}
 	
+	public static long B2L (byte [] bytes) {
+		return backvert (bytes, 8);
+	}
+	
+	public static int B2I (byte [] bytes) {
+		return (int) backvert (bytes, 4);
+	}
+	
+	private static long backvert (byte [] bytes, int length) {
+		long result = 0;
+		int limit = Math.min (length, bytes.length);
+		for (int i = 0; i < limit; i++) {
+			result = (result << 8) | bytes [i];
+		}
+		
+		return result;
+	}
+	
 }

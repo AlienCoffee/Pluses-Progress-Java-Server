@@ -17,7 +17,7 @@ public class ConnectionPool implements AutoCloseable {
 		if (Objects.isNull (POOL)) {
 			synchronized (ConnectionPool.class) {
 				if (Objects.isNull (POOL)) {
-					POOL = new ConnectionPool (8);
+					POOL = new ConnectionPool (2);
 				}
 			}
 		}
@@ -59,7 +59,6 @@ public class ConnectionPool implements AutoCloseable {
 					String [] input = connection.getInput ();
 					if (!Objects.isNull (input)) {
 						System.out.println (input [0]);
-						tasks -= 1;
 					}
 				}
 				
@@ -67,7 +66,8 @@ public class ConnectionPool implements AutoCloseable {
 					try {
 						Random r = Run.RANDOM;
 						// Sleeping because nothing to do now
-						Thread.sleep (1000 + r.nextInt (100));
+						Thread.sleep (10000 + r.nextInt (100));
+						System.out.println ("Connections: " + CONNECTIONS.size ());
 					} catch (InterruptedException ie) {
 						return;
 					}
