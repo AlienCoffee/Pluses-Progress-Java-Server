@@ -1,7 +1,7 @@
 package ru.shemplo.pluses.network.pool;
 
 
-public interface AppConnection {
+public interface AppConnection extends AutoCloseable {
 
 	public String getIdentifier ();
 	
