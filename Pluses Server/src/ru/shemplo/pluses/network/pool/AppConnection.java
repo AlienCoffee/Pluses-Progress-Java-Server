@@ -1,5 +1,6 @@
 package ru.shemplo.pluses.network.pool;
 
+import ru.shemplo.pluses.network.message.JavaAppMessage;
 
 public interface AppConnection extends AutoCloseable {
 
@@ -19,7 +20,7 @@ public interface AppConnection extends AutoCloseable {
 	 * @return one message from the stream
 	 * 
 	 */
-	public String [] getInput ();
+	public JavaAppMessage getInput ();
 	
 	public void update ();
 	

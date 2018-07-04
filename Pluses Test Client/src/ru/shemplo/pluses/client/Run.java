@@ -12,8 +12,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
-import ru.shemplo.pluses.network.message.JavaMessage;
-import ru.shemplo.pluses.network.message.JavaMessage.MessageDirection;
+import ru.shemplo.pluses.network.message.JavaAppMessage;
+import ru.shemplo.pluses.network.message.Message;
+import ru.shemplo.pluses.network.message.Message.MessageDirection;
 
 public class Run {
 
@@ -31,7 +32,7 @@ public class Run {
 			ObjectOutputStream oos = new ObjectOutputStream (baos);
 			
 			MessageDirection dir = MessageDirection.CLIENT_TO_SERVER;
-			JavaMessage message = new JavaMessage (dir, line);
+			Message message = new JavaAppMessage (dir, line);
 			oos.writeObject (message);
 			oos.flush ();
 			
