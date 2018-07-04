@@ -8,6 +8,8 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import ru.shemplo.pluses.Run;
+import ru.shemplo.pluses.logic.CommandHandler;
+import ru.shemplo.pluses.network.message.JavaAppMessage;
 
 public class ConnectionPool implements AutoCloseable {
 
@@ -46,19 +48,28 @@ public class ConnectionPool implements AutoCloseable {
 					if (!connection.isConnected ()) {
 						CONNECTIONS.remove (key);
 						
-						String [] input = null;
+						JavaAppMessage input = null;
 						// Handling all not processed inputs
 						while ((input = connection.getInput ()) != null) {
-							System.out.println (input [0]);
+							CommandHandler.run (input, connection);
 						}
 						
 						continue; // Connection died
 					}
 					
 					tasks += connection.getInputSize ();
-					String [] input = connection.getInput ();
+					JavaAppMessage input = connection.getInput ();
 					if (!Objects.isNull (input)) {
-						System.out.println (input [0]);
+						CommandHandler.run (input, connection);
+					}
+					
+					long now = System.currentTimeMillis ();
+					if (now - connection.getLastActivity () > 60 * 1000) {
+						// Connection is wasting resources
+						try {
+							// Dropping connection
+							connection.close ();
+						} catch (Exception e) {}
 					}
 				}
 				
@@ -66,8 +77,7 @@ public class ConnectionPool implements AutoCloseable {
 					try {
 						Random r = Run.RANDOM;
 						// Sleeping because nothing to do now
-						Thread.sleep (10000 + r.nextInt (100));
-						System.out.println ("Connections: " + CONNECTIONS.size ());
+						Thread.sleep (1500 + r.nextInt (100));
 					} catch (InterruptedException ie) {
 						return;
 					}

@@ -6,15 +6,17 @@ import java.io.InputStream;
 import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
-import ru.shemplo.pluses.network.message.JavaMessage;
+import ru.shemplo.pluses.log.Log;
+import ru.shemplo.pluses.network.message.JavaAppMessage;
 import ru.shemplo.pluses.util.json.BytesManip;
 
 public class JavaAppConnection implements AppConnection {
 
-	private final ConcurrentLinkedQueue <JavaMessage> 
+	private final ConcurrentLinkedQueue <JavaAppMessage> 
 		INPUT = new ConcurrentLinkedQueue <> ();
 	private final String IDENTIFIER;
 	
@@ -23,8 +25,8 @@ public class JavaAppConnection implements AppConnection {
 	private final Socket SOCKET;
 	
 	private AtomicLong updated = new AtomicLong ();
-	private boolean isConnected = true;
-	private long actived = 0;
+	private volatile boolean isConnected = true;
+	private long actived = Long.MAX_VALUE;
 	
 	public JavaAppConnection (String identifier, Socket socket) throws IOException {
 		this.OS = socket.getOutputStream ();
@@ -49,17 +51,26 @@ public class JavaAppConnection implements AppConnection {
 	}
 
 	@Override
-	public String [] getInput () {
-		return null;
+	public JavaAppMessage getInput () {
+		JavaAppMessage message = INPUT.poll ();
+		if (Objects.isNull (message)) {
+			return null;
+		}
+		
+		return message;
 	}
 
 	@Override
 	public void update () {
+		// Nothing to update: connection closed
+		if (!isConnected ()) { return; }
+		
 		long now = System.currentTimeMillis (), prev = getLastUpdated ();
 		long max = Long.MAX_VALUE; // This is necessary to prevent the
 		// situation when update would take more time than impulse period
-		if (now - prev > 5 * 1000 && updated.compareAndSet (prev, max)) {
-			System.out.println ("Update in " + Thread.currentThread ().getId ());
+		if (now - prev > 3 * 1000 && updated.compareAndSet (prev, max)) {
+			// This section is available for one thread only, that's why
+			// here can be called method below
 			_readStreamData ();
 			
 			// Finishing updating
@@ -69,6 +80,10 @@ public class JavaAppConnection implements AppConnection {
 	
 	private volatile int reserved = -1;
 	
+	/**
+	 * Must be guaranteed that this method works in single thread
+	 * 
+	 */
 	private void _readStreamData () {
 		long start = System.currentTimeMillis ();
 		try {
@@ -82,9 +97,9 @@ public class JavaAppConnection implements AppConnection {
 					InputStream is = new ByteArrayInputStream (buffer);
 					ObjectInputStream ois = new ObjectInputStream (is);
 					Object tmp = ois.readObject ();
-					if (tmp instanceof JavaMessage) {
-						JavaMessage message = (JavaMessage) tmp;
-						System.out.println (message.CONTENT);
+					if (tmp instanceof JavaAppMessage) {
+						JavaAppMessage message = (JavaAppMessage) tmp;
+						INPUT.add (message); // Adding to queue
 					}
 					
 					reserved = -1;
@@ -95,11 +110,23 @@ public class JavaAppConnection implements AppConnection {
 				}
 				
 				time = System.currentTimeMillis ();
+				actived = time;
 			}
-		} catch (IOException ioe) {
-			isConnected = false;
-		} catch (ClassNotFoundException cnfe) {
-			isConnected = false;
+		} catch (Exception es) {
+			Log.error (JavaAppConnection.class.getSimpleName (), 
+				"In connection " + IDENTIFIER + " something went wrong:\n" + es);
+			try {
+				// Something failed in connection
+				// Closing this connection
+				OS.close (); IS.close ();
+				SOCKET.close ();
+				
+				// This done not throw `close` method
+				// to prevent endless recursion
+			} catch (IOException ioe) {} finally {
+				// Mark connection as dropped
+				isConnected = false;
+			}
 		}
 	}
 
@@ -116,6 +143,10 @@ public class JavaAppConnection implements AppConnection {
 	@Override
 	public synchronized void close () throws Exception {
 		_readStreamData (); // Reading to prevent lose of data
+		// Mark connection as dropped
+		isConnected = false;
+		
+		// Finishing closing of connection
 		OS.close (); IS.close ();
 		SOCKET.close ();
 	}
