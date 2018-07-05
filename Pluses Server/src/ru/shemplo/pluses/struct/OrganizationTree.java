@@ -87,7 +87,12 @@ public class OrganizationTree {
             List <Node> updated = new ArrayList <> ();
             List <Node> current = getChildren ();
             if (OrgTreeAction.INSERT.equals (action)) {
+                current.stream ().forEach (n -> income.remove (n.getID ()));
+                updated.addAll (current);
                 
+                List <Node> extra = income.stream ()
+                    .map (this::makeChild).collect (toList ());
+                updated.addAll (extra);
             } else if (OrgTreeAction.DELETE.equals (action)) {
                 updated = current.stream ().filter (
                     n -> !income.contains (n.getID ())
@@ -123,12 +128,91 @@ public class OrganizationTree {
         
         @Override
         public Node makeChild (int id) {
+            return new ClassNode (id);
+        }
+        
+    }
+    
+    public static class ClassNode extends AbsNode <GroupNode> {
+
+        public ClassNode (int id) {
+            super (id);
+        }
+
+        @Override
+        public Node makeChild (int id) {
+            return new GroupNode (id);
+        }
+        
+    }
+    
+    public static class GroupNode extends AbsNode <TopicNode> {
+
+        private final List <VNode <StudentNode>> STUDENTS;
+        
+        public GroupNode (int id) {
+            super (id);
+            
+            this.STUDENTS = new ArrayList <> ();
+        }
+
+        @Override
+        public Node makeChild (int id) {
+            return new TopicNode (id);
+        }
+        
+        public void commitOnStudents (OrgTreeAction action, List <Integer> ids) {
+            List <StudentNode> list = 
+                STUDENTS.get (STUDENTS.size () - 1).getChildren ();
+            List <StudentNode> updated = new ArrayList <> ();
+            Set <Integer> income = new HashSet <> (ids);
+            if (OrgTreeAction.INSERT.equals (action)) {
+                list.stream ().forEach (n -> income.remove (n.getID ()));
+                updated.addAll (list);
+                
+                List <StudentNode> extra = income.stream ()
+                    .map (StudentNode::new).collect (toList ());
+                updated.addAll (extra);
+            } else if (OrgTreeAction.DELETE.equals (action)) {
+                updated = list.stream ().filter (
+                    n -> !income.contains (n.getID ())
+                ).collect (toList ());
+            }
+            
+            VNode <StudentNode> node = new VNode <> (updated);
+            STUDENTS.add (node);
+        }
+        
+        public void commitOnStudents (OrgTreeAction action, int id) {
+            List <Integer> list = new ArrayList <> (); list.add (id); 
+            commitOnStudents (action, list);
+        }
+        
+    }
+    
+    public static class StudentNode extends AbsNode <ClassNode> {
+        
+        public StudentNode (int id) {
+            super (id);
+        }
+
+        @Override
+        public Node makeChild (int id) {
             return null;
         }
         
     }
     
-    public static class ClassNode {
+    public static class TopicNode extends AbsNode <ClassNode> {
+
+        public TopicNode (int id) {
+            super (id);
+        }
+
+        @Override
+        public Node makeChild (int id) {
+            return null;
+        }
         
     }
     
