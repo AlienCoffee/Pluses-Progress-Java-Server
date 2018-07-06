@@ -1,10 +1,12 @@
 package ru.shemplo.pluses.client;
 
 import java.io.BufferedReader;
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.io.Reader;
@@ -13,12 +15,13 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 import ru.shemplo.pluses.network.message.JavaAppMessage;
-import ru.shemplo.pluses.network.message.Message;
-import ru.shemplo.pluses.network.message.Message.MessageDirection;
+import ru.shemplo.pluses.network.message.AppMessage;
+import ru.shemplo.pluses.network.message.AppMessage.MessageDirection;
 
 public class Run {
 
-	public static void main (String ... args) throws UnknownHostException, IOException {
+	public static void main (String ... args) throws UnknownHostException, 
+	        IOException, ClassNotFoundException {
 		Socket socket = new Socket ("localhost", 1999);
 		OutputStream os = socket.getOutputStream ();
 		InputStream is = socket.getInputStream ();
@@ -32,7 +35,7 @@ public class Run {
 			ObjectOutputStream oos = new ObjectOutputStream (baos);
 			
 			MessageDirection dir = MessageDirection.CLIENT_TO_SERVER;
-			Message message = new JavaAppMessage (dir, line);
+			AppMessage message = new JavaAppMessage (dir, line);
 			oos.writeObject (message);
 			oos.flush ();
 			
@@ -47,6 +50,26 @@ public class Run {
 			os.write (length);
 			os.write (data);
 			os.flush ();
+			
+			byte [] bufferLen = new byte [4];
+			is.read (bufferLen, 0, bufferLen.length);
+			int read = (bufferLen [0] << 24) 
+			            | (bufferLen [1] << 16) 
+			            | (bufferLen [2] << 8) 
+			            | bufferLen [3];
+			data = new byte [read];
+			is.read (data, 0, data.length);
+			
+			ByteArrayInputStream bais = new ByteArrayInputStream (data);
+			ObjectInputStream bis = new ObjectInputStream (bais);
+			Object tmp = bis.readObject ();
+			
+			if (tmp instanceof AppMessage) {
+			    AppMessage income = (AppMessage) tmp;
+			    System.out.println ("Section: " + income.getSection ());
+			    System.out.println ("Time: " + income.getTimestamp ());
+			    System.out.println (income.getContent ());
+			}
 		}
 		
 		socket.close ();

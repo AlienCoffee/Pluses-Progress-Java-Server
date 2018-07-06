@@ -1,6 +1,7 @@
 package ru.shemplo.pluses.network.pool;
 
 import ru.shemplo.pluses.network.message.JavaAppMessage;
+import ru.shemplo.pluses.network.message.Message;
 
 public interface AppConnection extends AutoCloseable {
 
@@ -27,5 +28,7 @@ public interface AppConnection extends AutoCloseable {
 	public long getLastUpdated ();
 	
 	public long getLastActivity ();
+	
+	public void sendMessage (Message message);
 	
 }

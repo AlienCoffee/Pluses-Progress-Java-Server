@@ -87,6 +87,10 @@ public class Log {
 		_log (LogLevel.ERROR, parent, message);
 	}
 	
+	public static void error (String parent, Exception exception) {
+        error (parent, "Exception occured (" + exception + ")");
+    }
+	
 	private static synchronized final void _log (LogLevel level, String parent, String message) {
 		if (Objects.isNull (message) || message.length () == 0) { return; }
 		
