@@ -8,6 +8,7 @@ import java.util.Objects;
 import java.util.Random;
 
 import ru.shemplo.pluses.config.Configuration;
+import ru.shemplo.pluses.db.MySQLAdapter;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.Acceptor;
 import ru.shemplo.pluses.network.JavaSocketAcceptor;
@@ -45,6 +46,8 @@ public class Run {
 			String message = "Failed to initialize acceptor due to:\n" + ioe;
 			Log.error (Run.class.getSimpleName (), message);
 		}
+		
+		MySQLAdapter.getInstance ();
 	}
 	
 	public static void stopApplication (int code, String comment) {
