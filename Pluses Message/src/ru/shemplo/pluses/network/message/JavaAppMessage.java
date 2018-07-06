@@ -1,16 +1,18 @@
 package ru.shemplo.pluses.network.message;
 
-public class JavaAppMessage implements Message {
+public class JavaAppMessage implements AppMessage {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 8333593235874302637L;
 	
-	public final MessageDirection DIRECTION;
-	public final String CONTENT;
+	private final MessageDirection DIRECTION;
+	private final String CONTENT;
+	private final long TIMESTAMP;
 	
 	public JavaAppMessage (MessageDirection direction, String content) {
+	    this.TIMESTAMP = System.currentTimeMillis ();
 		this.DIRECTION = direction;
 		this.CONTENT = content;
 	}
@@ -26,8 +28,13 @@ public class JavaAppMessage implements Message {
 	}
 
 	@Override
-	public String getCommand () {
+	public String getContent () {
 		return CONTENT;
 	}
+
+    @Override
+    public long getTimestamp () {
+        return TIMESTAMP;
+    }
 	
 }

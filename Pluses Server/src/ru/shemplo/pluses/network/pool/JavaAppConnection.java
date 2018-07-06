@@ -1,9 +1,13 @@
 package ru.shemplo.pluses.network.pool;
 
+import static ru.shemplo.pluses.network.message.AppMessage.MessageDirection.*;
+
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
 import java.io.OutputStream;
 import java.net.Socket;
 import java.util.Objects;
@@ -11,7 +15,9 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.atomic.AtomicLong;
 
 import ru.shemplo.pluses.log.Log;
+import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.JavaAppMessage;
+import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.util.json.BytesManip;
 
 public class JavaAppConnection implements AppConnection {
@@ -139,6 +145,45 @@ public class JavaAppConnection implements AppConnection {
 	public long getLastActivity () {
 		return actived;
 	}
+	
+	@Override
+    public void sendMessage (Message message) {
+	    // Can't send message: connection closed
+        if (!isConnected ()) { return; }
+        
+        if (Objects.isNull (message)) {
+            if (message instanceof AppMessage) {
+                AppMessage app = (AppMessage) message;
+                if (!SERVER_TO_CLIENT.equals (app.getDirection ())) {
+                    return;  // Message is empty or has invalid direction
+                }
+            }
+            
+            return; // Message is empty or has invalid direction
+        }
+        
+        try {
+            ByteArrayOutputStream baos = new ByteArrayOutputStream ();
+            ObjectOutputStream oos = new ObjectOutputStream (baos);
+            oos.writeObject (message);
+            oos.flush ();
+            
+            // Fetching serialized object to bytes array
+            byte [] data = baos.toByteArray ();
+            byte [] length = { // 4 bytes of length of object (length in bytes)
+                (byte) (data.length >> 24 & 0xff), // 31 30 29 28 27 26 25 24
+                (byte) (data.length >> 16 & 0xff), // 23 22 21 20 19 18 17 16
+                (byte) (data.length >> 8  & 0xff), // 15 14 13 12 11 10 9  8
+                (byte) (data.length       & 0xff)  // 7  6  5  4  3  2  1  0
+            };
+            
+            OS.write (length);
+            OS.write (data);
+            OS.flush ();
+        } catch (IOException ioe) {
+            
+        }
+    }
 
 	@Override
 	public synchronized void close () throws Exception {
