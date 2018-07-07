@@ -1,6 +1,5 @@
 package ru.shemplo.pluses.util.json;
 
-
 public class BytesManip {
 
 	public static byte [] L2B (long value) {
@@ -21,9 +20,9 @@ public class BytesManip {
 	
 	private static byte [] convert (long value, int length) {
 		byte [] array = new byte [length];
-		for (int i = 0; i < array.length; i++) {
-			int move = (array.length - i - 1) * 8;
-			array [i] = (byte) (0xff & ((value & (0xff << move)) >> move));
+		for (int i = length - 1; i >= 0; i--) {
+		    array [i] = (byte) (value & 0xff);
+		    value >>= 8;
 		}
 		
 		return array;
@@ -38,10 +37,11 @@ public class BytesManip {
 	}
 	
 	private static long backvert (byte [] bytes, int length) {
+	    int limit = Math.min (length, bytes.length);
 		long result = 0;
-		int limit = Math.min (length, bytes.length);
+		
 		for (int i = 0; i < limit; i++) {
-			result = (result << 8) | bytes [i];
+			result = (result << 8) | (bytes [i] & 0xffL);
 		}
 		
 		return result;

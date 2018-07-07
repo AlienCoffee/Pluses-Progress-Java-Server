@@ -39,6 +39,8 @@ public class Run {
 		
 		// Initialization of connection pool
 		ConnectionPool.getInstance ();
+		// Initializing of MySQL driver
+		MySQLAdapter.getInstance ();
 		
 		try {
 			ACCEPTORS [0] = new JavaSocketAcceptor (1999, 2);
@@ -46,8 +48,6 @@ public class Run {
 			String message = "Failed to initialize acceptor due to:\n" + ioe;
 			Log.error (Run.class.getSimpleName (), message);
 		}
-		
-		MySQLAdapter.getInstance ();
 	}
 	
 	public static void stopApplication (int code, String comment) {

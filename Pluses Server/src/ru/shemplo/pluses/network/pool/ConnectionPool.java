@@ -8,6 +8,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 import ru.shemplo.pluses.Run;
+import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.logic.CommandHandler;
 import ru.shemplo.pluses.network.message.JavaAppMessage;
 
@@ -54,7 +55,15 @@ public class ConnectionPool implements AutoCloseable {
 							CommandHandler.run (input, connection);
 						}
 						
-						continue; // Connection died
+						// Connection is wasting resources
+                        try {
+                            // Dropping connection
+                            connection.close ();
+                        } catch (Exception e) {}
+						
+						Log.log (ConnectionPool.class.getSimpleName (), 
+						    "Connection " + connection.getIdentifier () + " closed");
+						continue; // Connection died -> going to the next
 					}
 					
 					tasks += connection.getInputSize ();
@@ -62,22 +71,13 @@ public class ConnectionPool implements AutoCloseable {
 					if (!Objects.isNull (input)) {
 						CommandHandler.run (input, connection);
 					}
-					
-					long now = System.currentTimeMillis ();
-					if (now - connection.getLastActivity () > 60 * 1000) {
-						// Connection is wasting resources
-						try {
-							// Dropping connection
-							connection.close ();
-						} catch (Exception e) {}
-					}
 				}
 				
 				if (tasks == 0) {
 					try {
 						Random r = Run.RANDOM;
 						// Sleeping because nothing to do now
-						Thread.sleep (1500 + r.nextInt (100));
+						Thread.sleep (250 + r.nextInt (100));
 					} catch (InterruptedException ie) {
 						return;
 					}

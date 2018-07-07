@@ -16,7 +16,7 @@ public class JavaSocketAcceptor extends AbsSocketAcceptor {
 
 	@Override
 	public boolean handshake (String identifier, Socket socket) {
-		System.out.println ("Greeting for " + identifier);
+		System.out.println ("Handshake with " + identifier + " done");
 		return true;
 	}
 	

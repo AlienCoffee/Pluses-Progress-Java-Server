@@ -18,6 +18,8 @@ import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.JavaAppMessage;
 import ru.shemplo.pluses.network.message.Message;
+import ru.shemplo.pluses.network.message.PPMessage;
+import ru.shemplo.pluses.network.message.PPMessage.Ping;
 import ru.shemplo.pluses.util.json.BytesManip;
 
 public class JavaAppConnection implements AppConnection {
@@ -32,7 +34,7 @@ public class JavaAppConnection implements AppConnection {
 	
 	private AtomicLong updated = new AtomicLong ();
 	private volatile boolean isConnected = true;
-	private long actived = Long.MAX_VALUE;
+	private long active = 0;
 	
 	public JavaAppConnection (String identifier, Socket socket) throws IOException {
 		this.OS = socket.getOutputStream ();
@@ -66,6 +68,8 @@ public class JavaAppConnection implements AppConnection {
 		return message;
 	}
 
+	private boolean pending = false;
+	
 	@Override
 	public void update () {
 		// Nothing to update: connection closed
@@ -74,10 +78,24 @@ public class JavaAppConnection implements AppConnection {
 		long now = System.currentTimeMillis (), prev = getLastUpdated ();
 		long max = Long.MAX_VALUE; // This is necessary to prevent the
 		// situation when update would take more time than impulse period
-		if (now - prev > 3 * 1000 && updated.compareAndSet (prev, max)) {
+		if (now - prev > 5 * 100 && updated.compareAndSet (prev, max)) {
 			// This section is available for one thread only, that's why
 			// here can be called method below
 			_readStreamData ();
+			
+			// Checking connection with a client 
+			// sending him PING message
+			if (now - active > 15 * 1000 && !pending && isConnected) {
+                Message ping = new PPMessage (Ping.PING);
+                sendMessage (ping);
+                
+                pending = true;
+                active = now;
+            // wait 10 seconds after PING message
+            } else if (now - active > 30 * 1000 && pending) {
+                // Dropping connection by the reason of unused
+                isConnected = false;
+            }
 			
 			// Finishing updating
 			updated.compareAndSet (max, now);
@@ -103,9 +121,14 @@ public class JavaAppConnection implements AppConnection {
 					InputStream is = new ByteArrayInputStream (buffer);
 					ObjectInputStream ois = new ObjectInputStream (is);
 					Object tmp = ois.readObject ();
-					if (tmp instanceof JavaAppMessage) {
+					if (tmp instanceof AppMessage) {
 						JavaAppMessage message = (JavaAppMessage) tmp;
 						INPUT.add (message); // Adding to queue
+					} else if (tmp instanceof PPMessage) {
+					    PPMessage pong = (PPMessage) tmp;
+					    if (Ping.PONG.equals (pong.VALUE)) {
+					        active = time;
+					    }
 					}
 					
 					reserved = -1;
@@ -116,7 +139,8 @@ public class JavaAppConnection implements AppConnection {
 				}
 				
 				time = System.currentTimeMillis ();
-				actived = time;
+				pending = false;
+				active = time;
 			}
 		} catch (Exception es) {
 			Log.error (JavaAppConnection.class.getSimpleName (), 
@@ -143,7 +167,7 @@ public class JavaAppConnection implements AppConnection {
 
 	@Override
 	public long getLastActivity () {
-		return actived;
+		return active;
 	}
 	
 	@Override
@@ -169,13 +193,8 @@ public class JavaAppConnection implements AppConnection {
             oos.flush ();
             
             // Fetching serialized object to bytes array
-            byte [] data = baos.toByteArray ();
-            byte [] length = { // 4 bytes of length of object (length in bytes)
-                (byte) (data.length >> 24 & 0xff), // 31 30 29 28 27 26 25 24
-                (byte) (data.length >> 16 & 0xff), // 23 22 21 20 19 18 17 16
-                (byte) (data.length >> 8  & 0xff), // 15 14 13 12 11 10 9  8
-                (byte) (data.length       & 0xff)  // 7  6  5  4  3  2  1  0
-            };
+            byte [] data   = baos.toByteArray ();
+            byte [] length = BytesManip.I2B (data.length);
             
             OS.write (length);
             OS.write (data);
