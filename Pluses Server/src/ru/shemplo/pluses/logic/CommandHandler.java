@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.StringTokenizer;
 
+import ru.shemplo.pluses.db.MySQLAdapter;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.JavaAppError;
@@ -79,6 +80,9 @@ public class CommandHandler {
 	    }
 	    
 	    // TODO : here must be check that ids are valid
+	    String query = "SELECT COUNT(*) AS 'num' FROM `teachers` WHERE `id` IN ?";
+	    int num = MySQLAdapter.getInstance ().runCountInArray (query, ids);
+	    System.out.println ("Number of users in table: " + num);
 	    
 	    TREE.getOrganization ().commitAll (ids);
 	    System.out.println (TREE.toString ());
