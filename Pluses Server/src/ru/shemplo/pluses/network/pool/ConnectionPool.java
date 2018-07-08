@@ -11,6 +11,7 @@ import ru.shemplo.pluses.Run;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.logic.CommandHandler;
 import ru.shemplo.pluses.network.message.AppMessage;
+import ru.shemplo.pluses.network.message.CommandMessage;
 
 public class ConnectionPool implements AutoCloseable {
 
@@ -52,7 +53,10 @@ public class ConnectionPool implements AutoCloseable {
 						AppMessage input = null;
 						// Handling all not processed inputs
 						while ((input = connection.getInput ()) != null) {
-							CommandHandler.run (input, connection);
+						    if (input instanceof CommandMessage) {
+						        CommandMessage command = (CommandMessage) input;
+						        CommandHandler.run (command, connection);
+						    }
 						}
 						
 						// Connection is wasting resources
@@ -68,8 +72,9 @@ public class ConnectionPool implements AutoCloseable {
 					
 					tasks += connection.getInputSize ();
 					AppMessage input = connection.getInput ();
-					if (!Objects.isNull (input)) {
-						CommandHandler.run (input, connection);
+					if (!Objects.isNull (input) && input instanceof CommandMessage) {
+					    CommandMessage command = (CommandMessage) input;
+                        CommandHandler.run (command, connection);
 					}
 				}
 				

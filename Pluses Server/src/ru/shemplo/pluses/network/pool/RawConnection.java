@@ -12,9 +12,8 @@ import org.json.JSONObject;
 
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.AppMessage;
-import ru.shemplo.pluses.network.message.JSONMessage;
 import ru.shemplo.pluses.network.message.Message;
-import ru.shemplo.pluses.util.json.BytesManip;
+import ru.shemplo.pluses.util.BytesManip;
 
 public class RawConnection extends AbsConnection {
 
@@ -29,7 +28,7 @@ public class RawConnection extends AbsConnection {
         long start = System.currentTimeMillis ();
         try {
             long time = start;
-            while (time - start < 1 * 1000 && IS.available () > 0) {
+            while (time - start < 1 * 1000 && isConnected && IS.available () > 0) {
                 if (reserved != -1 && IS.available () >= reserved) {
                     byte [] buffer = new byte [reserved];
                     IS.read (buffer, 0, buffer.length);
@@ -46,10 +45,12 @@ public class RawConnection extends AbsConnection {
                         root.append ("content", message);
                         root.append ("timestamp", time);
                         
+                        /*
                         AppMessage error = new JSONMessage (SERVER_TO_CLIENT, root.toString ());
                         Log.error (RawConnection.class.getSimpleName (), message);
                         Log.error (RawConnection.class.getSimpleName (), jsone);
                         sendMessage (error);
+                        */
                     }
                     
                     reserved = -1;
@@ -91,7 +92,7 @@ public class RawConnection extends AbsConnection {
         if (Objects.isNull (message)) {
             if (message instanceof AppMessage) {
                 AppMessage app = (AppMessage) message;
-                if (!SERVER_TO_CLIENT.equals (app.getDirection ())) {
+                if (!STC.equals (app.getDirection ())) {
                     return;  // Message is empty or has invalid direction
                 }
             }

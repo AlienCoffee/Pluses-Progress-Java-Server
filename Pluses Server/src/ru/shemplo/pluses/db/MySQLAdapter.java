@@ -5,9 +5,14 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import ru.shemplo.pluses.log.Log;
 
@@ -49,7 +54,54 @@ public class MySQLAdapter implements AutoCloseable {
     public Connection getDB () {
         return CONNECTION;
     }
+    
+    public Optional <Statement> getStatement () {
+        Statement out = null;
+        try {
+            out = CONNECTION.createStatement ();
+        } catch (SQLException sqle) {
+            Log.error (MySQLAdapter.class.getSimpleName (), sqle);
+        }
+        
+        return Optional.of (out);
+    }
 
+    public <R> List <R> runFetchFromArray (String query, List <R> list) {
+        if (Objects.isNull (CONNECTION)) {
+            String message = "Database is not connected";
+            throw new IllegalStateException (message);
+        }
+        
+        Map <String, Integer> map = new HashMap <> ();
+        StringBuilder sb = new StringBuilder ("(");
+        for (int i = 0; i < list.size (); i++) {
+            sb.append ("'");
+            sb.append ("" + list.get (i));
+            map.put ("" + list.get (i), i);
+            sb.append ("'");
+            if (i < list.size () - 1) {
+                sb.append (",");
+            }
+        }
+        sb.append (")");
+        
+        try {
+            query = query.replace ("?", sb.toString ().trim ());
+            PreparedStatement statement = CONNECTION.prepareStatement (query);
+            ResultSet answer = statement.executeQuery ();
+            List <R> fetch = new ArrayList <> ();
+            if (answer.next ()) {
+                Integer index = map.get (answer.getString (1));
+                fetch.add (list.get (index));
+            }
+            
+            return fetch;
+        } catch (SQLException sqle) {
+            System.out.println (sqle);
+            return new ArrayList <> ();
+        }
+    }
+    
     public int runCountInArray (String query, List <?> list) {
         if (Objects.isNull (CONNECTION)) {
             String message = "Database is not connected";
