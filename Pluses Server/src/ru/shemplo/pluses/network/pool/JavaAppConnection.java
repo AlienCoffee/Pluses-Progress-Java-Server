@@ -13,11 +13,10 @@ import java.util.Objects;
 
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.AppMessage;
-import ru.shemplo.pluses.network.message.JavaAppMessage;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.message.PPMessage;
 import ru.shemplo.pluses.network.message.PPMessage.Ping;
-import ru.shemplo.pluses.util.json.BytesManip;
+import ru.shemplo.pluses.util.BytesManip;
 
 public class JavaAppConnection extends AbsConnection {
 	
@@ -36,7 +35,7 @@ public class JavaAppConnection extends AbsConnection {
 		long start = System.currentTimeMillis ();
 		try {
 			long time = start;
-			while (time - start < 1 * 1000 && IS.available () > 0) {
+			while (time - start < 1 * 1000 && isConnected && IS.available () > 0) {
 				if (reserved != -1 && IS.available () >= reserved) {
 					byte [] buffer = new byte [reserved];
 					IS.read (buffer, 0, buffer.length);
@@ -46,7 +45,7 @@ public class JavaAppConnection extends AbsConnection {
 					ObjectInputStream ois = new ObjectInputStream (is);
 					Object tmp = ois.readObject ();
 					if (tmp instanceof AppMessage) {
-						JavaAppMessage message = (JavaAppMessage) tmp;
+						AppMessage message = (AppMessage) tmp;
 						INPUT.add (message); // Adding to queue
 					} else if (tmp instanceof PPMessage) {
 					    PPMessage pong = (PPMessage) tmp;
@@ -92,7 +91,7 @@ public class JavaAppConnection extends AbsConnection {
         if (Objects.isNull (message)) {
             if (message instanceof AppMessage) {
                 AppMessage app = (AppMessage) message;
-                if (!SERVER_TO_CLIENT.equals (app.getDirection ())) {
+                if (!STC.equals (app.getDirection ())) {
                     return;  // Message is empty or has invalid direction
                 }
             }

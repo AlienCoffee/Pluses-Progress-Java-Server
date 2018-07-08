@@ -1,4 +1,4 @@
-package ru.shemplo.pluses.util.json;
+package ru.shemplo.pluses.util;
 
 public class BytesManip {
 

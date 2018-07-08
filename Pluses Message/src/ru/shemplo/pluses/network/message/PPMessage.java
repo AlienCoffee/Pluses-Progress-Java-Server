@@ -13,15 +13,22 @@ public class PPMessage implements Message {
     
     private final long TIMESTAMP;
     public final Ping VALUE;
+    public final int ID;
     
     public PPMessage (Ping value) {
         this.TIMESTAMP = System.currentTimeMillis ();
+        this.ID = RANDOM.nextInt ();
         this.VALUE = value;
     }
 
     @Override
     public long getTimestamp () {
         return TIMESTAMP;
+    }
+
+    @Override
+    public int getID () {
+        return ID;
     }
     
 }

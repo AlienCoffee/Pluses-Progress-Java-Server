@@ -16,7 +16,8 @@ import java.nio.charset.StandardCharsets;
 
 import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.AppMessage.MessageDirection;
-import ru.shemplo.pluses.network.message.JavaAppMessage;
+import ru.shemplo.pluses.network.message.CommandMessage;
+import ru.shemplo.pluses.network.message.ControlMessage;
 import ru.shemplo.pluses.network.message.PPMessage;
 
 public class Run {
@@ -44,23 +45,23 @@ public class Run {
 		new Thread (() -> {
 		    byte [] capacer = new byte [4];
 		    
-		    while (true) {
+		    while (socket.isConnected ()) {
 		        try {
 		            is.read (capacer, 0, capacer.length);
 	                int read = (int) backvert (capacer, 4);
 	                System.out.println ("To read: " + read);
 	                byte [] data = new byte [read];
-	                is.read (data, 0, data.length);  
+	                read = is.read (data, 0, data.length);
+	                if (read == -1) { System.exit (0); }
 	                
 	                ByteArrayInputStream bais = new ByteArrayInputStream (data);
 	                ObjectInputStream bis = new ObjectInputStream (bais);
 	                Object tmp = bis.readObject ();
 	                
-	                if (tmp instanceof AppMessage) {
-	                    AppMessage income = (AppMessage) tmp;
-	                    System.out.println ("Section: " + income.getSection ());
+	                if (tmp instanceof ControlMessage) {
+	                    ControlMessage income = (ControlMessage) tmp;
 	                    System.out.println ("Time: " + income.getTimestamp ());
-	                    System.out.println (income.getContent ());
+	                    System.out.println (income.getComment ());
 	                } else if (tmp instanceof PPMessage) {
 	                    PPMessage ping = (PPMessage) tmp;
 	                    System.out.println ("Value: " + ping.VALUE);
@@ -72,12 +73,12 @@ public class Run {
 		}).start ();
 		
 		String line = null;
-        while ((line = br.readLine ()) != null) {
+        while ((line = br.readLine ()) != null && socket.isConnected ()) {
             ByteArrayOutputStream baos = new ByteArrayOutputStream ();
             ObjectOutputStream oos = new ObjectOutputStream (baos);
             
-            MessageDirection dir = MessageDirection.CLIENT_TO_SERVER;
-            AppMessage message = new JavaAppMessage (dir, line);
+            MessageDirection dir = MessageDirection.CTS;
+            AppMessage message = new CommandMessage (dir, line);
             oos.writeObject (message);
             oos.flush ();
             

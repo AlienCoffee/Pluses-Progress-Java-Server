@@ -14,7 +14,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.json.JSONObject;
 
-import ru.shemplo.pluses.network.message.AppMessage;
+import ru.shemplo.pluses.network.message.ControlMessage;
 import ru.shemplo.pluses.network.message.PPMessage;
 
 public class RunJSON {
@@ -56,11 +56,10 @@ public class RunJSON {
                     ObjectInputStream bis = new ObjectInputStream (bais);
                     Object tmp = bis.readObject ();
                     
-                    if (tmp instanceof AppMessage) {
-                        AppMessage income = (AppMessage) tmp;
-                        System.out.println ("Section: " + income.getSection ());
+                    if (tmp instanceof ControlMessage) {
+                        ControlMessage income = (ControlMessage) tmp;
                         System.out.println ("Time: " + income.getTimestamp ());
-                        System.out.println (income.getContent ());
+                        System.out.println (income.getComment ());
                     } else if (tmp instanceof PPMessage) {
                         PPMessage ping = (PPMessage) tmp;
                         System.out.println ("Value: " + ping.VALUE);
