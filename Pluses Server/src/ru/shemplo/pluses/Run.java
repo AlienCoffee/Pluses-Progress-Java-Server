@@ -12,6 +12,7 @@ import ru.shemplo.pluses.db.MySQLAdapter;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.Acceptor;
 import ru.shemplo.pluses.network.JavaSocketAcceptor;
+import ru.shemplo.pluses.network.RawSocketAcceptor;
 import ru.shemplo.pluses.network.pool.ConnectionPool;
 
 public class Run {
@@ -43,7 +44,8 @@ public class Run {
 		MySQLAdapter.getInstance ();
 		
 		try {
-			ACCEPTORS [0] = new JavaSocketAcceptor (1999, 2);
+		    ACCEPTORS [0] = new JavaSocketAcceptor (1999, 2);
+			ACCEPTORS [1] = new RawSocketAcceptor (2000, 2);
 		} catch (IOException ioe) {
 			String message = "Failed to initialize acceptor due to:\n" + ioe;
 			Log.error (Run.class.getSimpleName (), message);
