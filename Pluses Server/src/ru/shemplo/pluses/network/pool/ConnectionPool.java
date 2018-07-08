@@ -10,7 +10,7 @@ import java.util.concurrent.ConcurrentMap;
 import ru.shemplo.pluses.Run;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.logic.CommandHandler;
-import ru.shemplo.pluses.network.message.JavaAppMessage;
+import ru.shemplo.pluses.network.message.AppMessage;
 
 public class ConnectionPool implements AutoCloseable {
 
@@ -49,7 +49,7 @@ public class ConnectionPool implements AutoCloseable {
 					if (!connection.isConnected ()) {
 						CONNECTIONS.remove (key);
 						
-						JavaAppMessage input = null;
+						AppMessage input = null;
 						// Handling all not processed inputs
 						while ((input = connection.getInput ()) != null) {
 							CommandHandler.run (input, connection);
@@ -67,7 +67,7 @@ public class ConnectionPool implements AutoCloseable {
 					}
 					
 					tasks += connection.getInputSize ();
-					JavaAppMessage input = connection.getInput ();
+					AppMessage input = connection.getInput ();
 					if (!Objects.isNull (input)) {
 						CommandHandler.run (input, connection);
 					}

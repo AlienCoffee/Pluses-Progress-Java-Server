@@ -39,6 +39,7 @@ public class RunRaw {
                     is.read (buffer, 0, buffer.length);
                     
                     String input = new String (buffer, StandardCharsets.UTF_8);
+                    System.out.println ("Input (size: " + length + "): " + input);
                     if (input.indexOf ("read") != -1) {
                         try (
                             InputStream read = new FileInputStream (FILE);
@@ -46,10 +47,10 @@ public class RunRaw {
                             buffer = new byte [read.available ()];
                             read.read (buffer, 0, buffer.length);
                             
-                            capacer [0] = (byte) (buffer.length >> 24 & 0xff);
-                            capacer [1] = (byte) (buffer.length >> 16 & 0xff);
-                            capacer [2] = (byte) (buffer.length >> 8  & 0xff);
-                            capacer [3] = (byte) (buffer.length       & 0xff);
+                            capacer [0] = (byte) (buffer.length >> 24 & 0xffL);
+                            capacer [1] = (byte) (buffer.length >> 16 & 0xffL);
+                            capacer [2] = (byte) (buffer.length >> 8  & 0xffL);
+                            capacer [3] = (byte) (buffer.length       & 0xffL);
                             
                             os.write (capacer, 0, capacer.length);
                             os.write (buffer);
@@ -58,10 +59,10 @@ public class RunRaw {
                     } else {
                         buffer = ("some income string: " + input).getBytes ();
                         
-                        capacer [0] = (byte) (buffer.length >> 24 & 0xff);
-                        capacer [1] = (byte) (buffer.length >> 16 & 0xff);
-                        capacer [2] = (byte) (buffer.length >> 8  & 0xff);
-                        capacer [3] = (byte) (buffer.length       & 0xff);
+                        capacer [0] = (byte) (buffer.length >> 24 & 0xffL);
+                        capacer [1] = (byte) (buffer.length >> 16 & 0xffL);
+                        capacer [2] = (byte) (buffer.length >> 8  & 0xffL);
+                        capacer [3] = (byte) (buffer.length       & 0xffL);
                         
                         os.write (capacer, 0, capacer.length);
                         os.write (buffer);

@@ -31,7 +31,7 @@ public class JavaSocketAcceptor extends AbsSocketAcceptor {
 			pool.registerConnection (connection);
 		} catch (Exception e) {
 			Log.error (JavaSocketAcceptor.class.getSimpleName (), 
-				"Socket made handshake but failed to wrapped into connection:\n" + e);
+				"Socket made handshake but failed to be wrapped into connection:\n" + e);
 		}
 	}
 
