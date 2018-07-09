@@ -38,7 +38,7 @@ public class ConnectionPool implements AutoCloseable {
 	private ConnectionPool (int threads) {
 		this.THREADS = new HashSet <> ();
 		this.TASK = () -> {
-			while (Run.isRunning) {
+			while (Run.isRunning ()) {
 				Set <String> keys = CONNECTIONS.keySet ();
 				int tasks = 0;
 				
@@ -103,7 +103,16 @@ public class ConnectionPool implements AutoCloseable {
 
 	@Override
 	public void close () throws Exception {
-		
+	    synchronized (THREADS) {
+	        for (Thread thread : THREADS) { 
+	            thread.join (); 
+	        }
+        }
+	    
+	    Set <String> keys = CONNECTIONS.keySet ();
+        for (String key : keys) {
+            CONNECTIONS.get (key).close ();
+        }
 	}
 	
 }

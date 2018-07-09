@@ -1,5 +1,9 @@
 package ru.shemplo.pluses.network.message;
 
+import java.util.Objects;
+
+import org.json.JSONObject;
+
 public abstract class AbsAppMessage implements AppMessage {
 
     /**
@@ -22,6 +26,21 @@ public abstract class AbsAppMessage implements AppMessage {
     
     public AbsAppMessage (MessageDirection direction) {
         this (null, direction);
+    }
+    
+    @Override
+    public JSONObject toJSON (JSONObject root) {
+        root.put ("timestamp", getTimestamp ());
+        root.put ("direction", getDirection ());
+        root.put ("id", getID ());
+        
+        if (!Objects.isNull (REPLY)) {
+            JSONObject tmp = new JSONObject ();
+            root.put ("reply", 
+                REPLY.toJSON (tmp).toString ());
+        }
+        
+        return root;
     }
     
     @Override

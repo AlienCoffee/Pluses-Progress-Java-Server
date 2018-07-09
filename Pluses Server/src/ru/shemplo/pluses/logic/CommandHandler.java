@@ -6,6 +6,7 @@ import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.*;
 import java.util.Objects;
 import java.util.StringTokenizer;
 
+import ru.shemplo.pluses.Run;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.CommandMessage;
 import ru.shemplo.pluses.network.message.ControlMessage;
@@ -38,6 +39,15 @@ public class CommandHandler {
 			case "QUIT":
 			    try    { connect.close (); } 
 			    catch (Exception e) { /**/ }
+			    break;
+			    
+			case "PING":
+			    Message pong = new ControlMessage (STC, INFO, 0, "PONG");
+			    connect.sendMessage (pong);
+			    break;
+			    
+			case "STOP":
+			    Run.stopApplication (0, "Command from client");
 			    break;
 				
 			default:

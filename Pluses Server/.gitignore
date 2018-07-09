@@ -2,6 +2,7 @@
 /.settings/
 /log/
 /lib/
+/build/
 
 .project
 .classpath
@@ -10,3 +11,4 @@
 *.bin
 *.ini
 *.cmd
+*.zip

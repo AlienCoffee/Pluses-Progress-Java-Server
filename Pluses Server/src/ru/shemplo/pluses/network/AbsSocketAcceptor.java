@@ -31,7 +31,7 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 		this.THREADS = new HashSet <> ();
 		this.TASK = () -> {
 			int tries = 0;
-			while (Run.isRunning) {
+			while (Run.isRunning ()) {
 				Socket socket = WAIT_HANDSHAKE.poll ();
 				if (Objects.isNull (socket)) {
 					try {
@@ -73,7 +73,7 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 		}
 		
 		this.ACCEPTOR = new Thread (() -> {
-			while (Run.isRunning) {
+			while (Run.isRunning ()) {
 				try {
 					// Trying to accept as much as possible
 					// and then make a handshake...
@@ -114,7 +114,13 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 	
 	@Override
 	public void close () throws Exception {
-		
+	    synchronized (THREADS) {
+	        ACCEPTOR.join ();
+        }
+	    
+	    for (Thread thread : THREADS) { 
+            thread.join (); 
+        }
 	}
 	
 }

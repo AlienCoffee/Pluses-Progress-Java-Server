@@ -14,6 +14,7 @@ import ru.shemplo.pluses.network.Acceptor;
 import ru.shemplo.pluses.network.JavaSocketAcceptor;
 import ru.shemplo.pluses.network.RawSocketAcceptor;
 import ru.shemplo.pluses.network.pool.ConnectionPool;
+import ru.shemplo.pluses.struct.OrganizationHistory;
 
 public class Run {
 
@@ -27,7 +28,7 @@ public class Run {
 		System.out.println ("[INFO][RUN] Server started in " + RUN_DIRECTORY);
 	}
 	
-	public static boolean isRunning = true;
+	private static boolean isRunning = true;
 	public static int exitCode = 1;
 	
 	private static final Acceptor [] ACCEPTORS;
@@ -36,13 +37,20 @@ public class Run {
 	}
 	
 	public static void main (String ... args) {
-		Configuration.load (CONFIG_NAME);
+		// Loading configuration from file
+	    Configuration.load (CONFIG_NAME);
 		
 		// Initialization of connection pool
 		ConnectionPool.getInstance ();
 		// Initializing of MySQL driver
 		MySQLAdapter.getInstance ();
+		// Initializing history structure
+		OrganizationHistory.init ();
 		
+		////////////////////////////////////
+		Log.log (Run.class.getSimpleName (), 
+		    "Initialization of necessary components completed");
+		////////////////////////////////////////////////////////
 		try {
 		    ACCEPTORS [0] = new JavaSocketAcceptor (1999, 2);
 			ACCEPTORS [1] = new RawSocketAcceptor (2000, 2);
@@ -50,41 +58,58 @@ public class Run {
 			String message = "Failed to initialize acceptor due to:\n" + ioe;
 			Log.error (Run.class.getSimpleName (), message);
 		}
+		
+		Log.log (Run.class.getSimpleName (), "Server successfully started :)");
 	}
 	
 	public static void stopApplication (int code, String comment) {
-		Log.log (Run.class.getSimpleName (), "Stopping server...");
-		
-		if (code == 0) {
-			String message = isNull (comment) || comment.length () == 0
-							 ? "Application stopped normally"
-							 : "Normal stop: " + comment;
-			System.out.println (message);
-		} else {
-			String message = isNull (comment) || comment.length () == 0
-							 ? "Application stopped with uncommented reason"
-							 : "Fatal stop (" + code + "): " + comment;
-			System.out.flush ();
-			System.err.println (message);
-			System.err.flush ();
-		}
-		
 		isRunning = false;
-		try {
-			for (int i = 0; i < ACCEPTORS.length; i++) {
-				Acceptor acceptor = ACCEPTORS [i];
-				if (!Objects.isNull (acceptor)) {
-					acceptor.close ();
-				}
-			}
-			
-			ConnectionPool.getInstance ().close ();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
 		
-		Log.close ();
-		System.exit (code);
+		// Stopping server in special thread to avoid deadlock
+		// in case when processing thread will wail itself in
+		// `Thread.join ()` method
+		//
+		// This process isn't instant, it takes about 5 seconds
+		Thread stop = new Thread (() -> {
+		    Log.log (Run.class.getSimpleName (), "Stopping server...");
+	        
+	        if (code == 0) {
+	            String message = isNull (comment) || comment.length () == 0
+	                             ? "Application stopped normally"
+	                             : "Normal stop: " + comment;
+	            System.out.println (message);
+	        } else {
+	            String message = isNull (comment) || comment.length () == 0
+	                             ? "Application stopped with uncommented reason"
+	                             : "Fatal stop (" + code + "): " + comment;
+	            System.out.flush ();
+	            System.err.println (message);
+	            System.err.flush ();
+	        }
+	        
+		    try {
+		        // Stopping server in accepting new sockets
+	            for (int i = 0; i < ACCEPTORS.length; i++) {
+	                Acceptor acceptor = ACCEPTORS [i];
+	                if (!Objects.isNull (acceptor)) {
+	                    acceptor.close ();
+	                }
+	            }
+	            
+	            // Stopping server in processing commands
+	            ConnectionPool.getInstance ().close ();
+	            // Stopping server in logging events
+	            Log.close ();
+	        } catch (Exception e) {}
+		    
+		    // Exit from application with code
+	        System.exit (code);
+		});
+		stop.start ();
+	}
+	
+	public static boolean isRunning () {
+	    return isRunning;
 	}
 	
 }
