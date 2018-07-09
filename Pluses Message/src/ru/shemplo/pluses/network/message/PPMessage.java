@@ -1,5 +1,7 @@
 package ru.shemplo.pluses.network.message;
 
+import org.json.JSONObject;
+
 public class PPMessage implements Message {
     
     /**
@@ -19,6 +21,15 @@ public class PPMessage implements Message {
         this.TIMESTAMP = System.currentTimeMillis ();
         this.ID = RANDOM.nextInt ();
         this.VALUE = value;
+    }
+    
+    @Override
+    public JSONObject toJSON (JSONObject root) {
+        root.put ("timestamp", TIMESTAMP);
+        root.put ("type", "ppmessage");
+        root.put ("value", VALUE);
+        root.put ("id", ID);
+        return root;
     }
 
     @Override

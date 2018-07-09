@@ -23,10 +23,10 @@ public abstract class AbsConnection implements AppConnection {
     protected final InputStream IS;
     protected final Socket SOCKET;
     
+    protected long active = System.currentTimeMillis ();
     protected AtomicLong updated = new AtomicLong ();
     protected volatile boolean isConnected = true;
     protected volatile boolean isPending = false;
-    protected long active = 0;
     
     public AbsConnection (String identifier, Socket socket) throws IOException {
         this.OS = socket.getOutputStream ();

@@ -12,6 +12,9 @@ import org.json.JSONObject;
 
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.AppMessage;
+import ru.shemplo.pluses.network.message.CommandMessage;
+import ru.shemplo.pluses.network.message.ControlMessage;
+import ru.shemplo.pluses.network.message.ControlMessage.ControlType;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.util.BytesManip;
 
@@ -36,7 +39,11 @@ public class RawConnection extends AbsConnection {
                     String string = new String (buffer, StandardCharsets.UTF_8);
                     try {
                         JSONObject root = new JSONObject (string);
-                        System.out.println (root.toString ());
+                        if (root.has ("content")) {
+                            String content = root.getString ("content");
+                            AppMessage command = new CommandMessage (CTS, content);
+                            INPUT.add (command);
+                        }
                     } catch (JSONException jsone) {
                         String message = "Wrong input format of JSON message";
                         
@@ -45,21 +52,17 @@ public class RawConnection extends AbsConnection {
                         root.append ("content", message);
                         root.append ("timestamp", time);
                         
-                        /*
-                        AppMessage error = new JSONMessage (SERVER_TO_CLIENT, root.toString ());
+                        AppMessage error = new ControlMessage (STC, ControlType.ERROR, 0, message);
                         Log.error (RawConnection.class.getSimpleName (), message);
                         Log.error (RawConnection.class.getSimpleName (), jsone);
                         sendMessage (error);
-                        */
                     }
                     
                     reserved = -1;
                 } else if (reserved == -1 && IS.available () > 4) {
-                    System.out.println ("Fetching length");
                     byte [] buffer = new byte [4];
                     IS.read (buffer, 0, buffer.length);
                     reserved = BytesManip.B2I (buffer);
-                    System.out.println ("Reserved: " + reserved);
                 }
                 
                 time = System.currentTimeMillis ();
@@ -100,7 +103,18 @@ public class RawConnection extends AbsConnection {
             return; // Message is empty or has invalid direction
         }
         
-        
+        try {
+            // Fetching serialized object to bytes array
+            byte [] data   = message.toJSON (new JSONObject ())
+                .toString ().getBytes (StandardCharsets.UTF_8);
+            byte [] length = BytesManip.I2B (data.length);
+            
+            OS.write (length);
+            OS.write (data);
+            OS.flush ();
+        } catch (IOException ioe) {
+            isConnected = false;
+        }
     }
     
 }

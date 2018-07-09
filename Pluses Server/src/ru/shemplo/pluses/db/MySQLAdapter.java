@@ -9,10 +9,12 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 
 import ru.shemplo.pluses.log.Log;
 
@@ -28,6 +30,8 @@ public class MySQLAdapter implements AutoCloseable {
                         ADAPTER = new MySQLAdapter ();
                     } catch (SQLException sqle) {
                         sqle.printStackTrace();
+                    } catch (Exception e) {
+                        System.out.println (e);
                     }
                 }
             }
@@ -36,6 +40,7 @@ public class MySQLAdapter implements AutoCloseable {
         return ADAPTER;
     }
     
+    private final Map <String, Set <String>> COLUMNS;
     private final Connection CONNECTION;
     
     private MySQLAdapter () throws SQLException {
@@ -49,10 +54,33 @@ public class MySQLAdapter implements AutoCloseable {
         CONNECTION = DriverManager.getConnection (url, user, pass);
         Log.log (MySQLAdapter.class.getSimpleName (), 
             "Connection to database established");
+        
+        this.COLUMNS = new HashMap <> ();
+        Statement statement = CONNECTION.createStatement ();
+        ResultSet answer = statement.executeQuery ("SHOW TABLES");
+        while (answer.next ()) {
+            String table = answer.getString (1);
+            statement = CONNECTION.createStatement ();
+            ResultSet columns = statement.executeQuery (
+                "SHOW COLUMNS FROM `" + table + "`");
+            Set <String> cols = new HashSet <> ();
+            while (columns.next ()) {
+                cols.add (columns.getString (1));
+            }
+            // Specific field that can't be set
+            cols.remove ("id");
+
+            COLUMNS.put (table, cols);
+        }
+        
     }
     
     public Connection getDB () {
         return CONNECTION;
+    }
+    
+    public Set <String> getTableColumns (String table) {
+        return COLUMNS.get (table);
     }
     
     public Optional <Statement> getStatement () {

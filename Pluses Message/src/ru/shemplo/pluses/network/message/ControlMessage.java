@@ -1,5 +1,7 @@
 package ru.shemplo.pluses.network.message;
 
+import org.json.JSONObject;
+
 public class ControlMessage extends AbsAppMessage {
 
     /**
@@ -26,6 +28,16 @@ public class ControlMessage extends AbsAppMessage {
     public ControlMessage (MessageDirection direction, ControlType type, 
             int code, String comment) {
         this (null, direction, type, code, comment);
+    }
+    
+    @Override
+    public JSONObject toJSON (JSONObject root) {
+        JSONObject tmp = super.toJSON (root);
+        tmp.put ("type", "controlmessage");
+        tmp.put ("comment", getComment ());
+        tmp.put ("kind", getType ());
+        tmp.put ("code", getCode ());
+        return tmp;
     }
     
     public ControlType getType () {

@@ -1,11 +1,9 @@
 package ru.shemplo.pluses.client;
 
 import java.io.BufferedReader;
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
-import java.io.ObjectInputStream;
 import java.io.OutputStream;
 import java.io.Reader;
 import java.net.Socket;
@@ -13,9 +11,6 @@ import java.net.UnknownHostException;
 import java.nio.charset.StandardCharsets;
 
 import org.json.JSONObject;
-
-import ru.shemplo.pluses.network.message.ControlMessage;
-import ru.shemplo.pluses.network.message.PPMessage;
 
 public class RunJSON {
     
@@ -42,36 +37,23 @@ public class RunJSON {
         new Thread (() -> {
             byte [] capacer = new byte [4];
             
-            while (true) {
+            while (socket.isConnected ()) {
                 try {
                     is.read (capacer, 0, capacer.length);
                     int read = (int) backvert (capacer, 4);
                     System.out.println ("To read: " + read);
-                    // Waiting for rest of message
-                    while (is.available () < read) {}
                     byte [] data = new byte [read];
-                    is.read (data, 0, data.length);
+                    read = is.read (data, 0, data.length);
+                    if (read == -1) { System.exit (0); }
                     
-                    ByteArrayInputStream bais = new ByteArrayInputStream (data);
-                    ObjectInputStream bis = new ObjectInputStream (bais);
-                    Object tmp = bis.readObject ();
-                    
-                    if (tmp instanceof ControlMessage) {
-                        ControlMessage income = (ControlMessage) tmp;
-                        System.out.println ("Time: " + income.getTimestamp ());
-                        System.out.println (income.getComment ());
-                    } else if (tmp instanceof PPMessage) {
-                        PPMessage ping = (PPMessage) tmp;
-                        System.out.println ("Value: " + ping.VALUE);
-                    } else {
-                        System.out.println (tmp);
-                    }
-                } catch (IOException | ClassNotFoundException es) {}
+                    String input = new String (data, 0, data.length);
+                    System.out.println (input);
+                } catch (IOException ioe) {}
             }
         }).start ();
         
         String line = null;
-        while ((line = br.readLine ()) != null) {
+        while ((line = br.readLine ()) != null && socket.isConnected ()) {
             JSONObject root = new JSONObject ();
             root.put ("section", "message");
             root.put ("timestamp", System.currentTimeMillis ());

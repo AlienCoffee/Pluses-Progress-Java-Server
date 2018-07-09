@@ -118,6 +118,7 @@ public class Log {
 			String print = sb.toString ();
 			System.out.println (print);
 			logs [log].println (print);
+			logs [log].flush ();
 		}
 	}
 	
