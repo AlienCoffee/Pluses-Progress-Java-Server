@@ -23,38 +23,45 @@ public class CommandHandler {
 		StringTokenizer st = new StringTokenizer (mes.getCommand ());
 		if (!st.hasMoreTokens ()) { return; /* Nothing to run */ }
 		String command = st.nextToken ().toUpperCase ();
-		switch (command) {
-		    case "CREATE": // command to create something
-		        CreateHandler.runCreate (st, mes, connect);
-		        break;
-		    
-			case "INSERT": // command to add something
-				InsertHandler.runInsert (st, mes, connect);
-				break;
-				
-			case "DELETE":
-			    break;
-			    
-			case "EXIT":
-			case "QUIT":
-			    try    { connect.close (); } 
-			    catch (Exception e) { /**/ }
-			    break;
-			    
-			case "PING":
-			    Message pong = new ControlMessage (STC, INFO, 0, "PONG");
-			    connect.sendMessage (pong);
-			    break;
-			    
-			case "STOP":
-			    Run.stopApplication (0, "Command from client");
-			    break;
-				
-			default:
-			    String content = "Command `" + command + "` can't be run (unknown command)";
-				Message error = new ControlMessage (STC, ERROR, 0, content);
-				Log.error (CommandHandler.class.getSimpleName (), content);
-				connect.sendMessage (error);
+		try {
+		    switch (command) {
+	            case "CREATE": // command to create something
+	                CreateHandler.runCreate (st, mes, connect);
+	                break;
+	            
+	            case "INSERT": // command to add something
+	                InsertHandler.runInsert (st, mes, connect);
+	                break;
+	                
+	            case "DELETE":
+	                break;
+	                
+	            case "EXIT":
+	            case "QUIT":
+	                try    { connect.close (); } 
+	                catch (Exception e) { /**/ }
+	                break;
+	                
+	            case "PING":
+	                Message pong = new ControlMessage (STC, INFO, 0, "PONG");
+	                connect.sendMessage (pong);
+	                break;
+	                
+	            case "STOP":
+	                Run.stopApplication (0, "Command from client");
+	                break;
+	                
+	            default:
+	                String content = "Command `" + command + "` can't be run (unknown command)";
+	                Message error = new ControlMessage (STC, ERROR, 0, content);
+	                Log.error (CommandHandler.class.getSimpleName (), content);
+	                connect.sendMessage (error);
+	        }
+		// Handling all possible exceptions and sending error message to client
+		} catch (Exception e) {
+		    Message error = new ControlMessage (mes, STC, ERROR, 0, 
+		        "Unhandled (unexpected) error:\n" + e);
+		    connect.sendMessage (error);
 		}
 	}
 	

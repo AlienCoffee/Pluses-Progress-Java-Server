@@ -24,9 +24,7 @@ public class Arguments {
         }
         
         // Change special symbols to their's codes (f.e. > -> &gt;)
-        args = args.stream ().map (StringEscapeUtils::escapeHtml)
-            .map (StringEscapeUtils::escapeJavaScript)
-            .map (StringEscapeUtils::escapeXml)
+        args = args.stream ().map (StringEscapeUtils::escapeJava)
             .collect (Collectors.toList ());
         
         return parse (base, args);

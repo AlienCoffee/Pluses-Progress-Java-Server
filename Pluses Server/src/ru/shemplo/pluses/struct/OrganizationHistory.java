@@ -35,6 +35,8 @@ public class OrganizationHistory {
         TOPICS = new ConcurrentHashMap <> ();
     
     public synchronized static void init () {
+        STUDENTS.clear (); TOPICS.clear ();
+        
         Connection mysql = MySQLAdapter.getInstance ().getDB ();
         try {
             String query = "SELECT `id` FROM `students` ORDER BY `id` ASC";
@@ -77,6 +79,89 @@ public class OrganizationHistory {
         }
     }
     
+    //////////////////
+    // ------------ //
+    // FOR STUDENTS //
+    // ------------ //
+    //////////////////
+    
+    public static boolean existsStudent (int studentID) {
+        return STUDENTS.containsKey (studentID);
+    }
+    
+    /**
+     * <p>
+     * <b>!! WARNING !!</b>
+     * Don't call this method if you are not sure what you're doing.
+     * The consequences of calling this method can be fatal for
+     * current start of server. Correct state can be restored only
+     * after calling method {@link #init() init} (or after restart)
+     * </p>
+     * 
+     * @param studentID
+     * 
+     */
+    public static void createStudent (int studentID) {
+        if (existsStudent (studentID)) {
+            String message = "Student " + studentID + " is already created";
+            throw new IllegalStateException (message);
+        }
+        
+        // Adding instance of new student to control structure
+        STUDENTS.putIfAbsent (studentID, new StudentHistory (studentID));
+    }
+    
+    public static void insertStudent (int studentID, int groupID, long timestamp) {
+        if (!existsStudent (studentID)) {
+            String message = "Student " + studentID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        StudentHistory student = STUDENTS.get (studentID);
+        student.addMovement (null, groupID, timestamp);
+    }
+    
+    ////////////////
+    // ---------- //
+    // FOR TOPICS //
+    // ---------- //
+    ////////////////
+    
+    public static boolean existsTopic (int topicID) {
+        return TOPICS.containsKey (topicID);
+    }
+    
+    /**
+     * <p>
+     * <b>!! WARNING !!</b>
+     * Don't call this method if you are not sure what you're doing.
+     * The consequences of calling this method can be fatal for
+     * current start of server. Correct state can be restored only
+     * after calling method {@link #init() init} (or after restart)
+     * </p>
+     * 
+     * @param topicID
+     * 
+     */
+    public static void createTopic (int topicID) {
+        if (existsTopic (topicID)) {
+            String message = "Topic " + topicID + " is already created";
+            throw new IllegalStateException (message);
+        }
+        
+        // Adding instance of new student to control structure
+        TOPICS.putIfAbsent (topicID, new TopicEntry (topicID));
+    }
+    
+    public static void insertTopic (int topicID, int groupID, long timestamp) {
+        if (!existsTopic (topicID)) {
+            String message = "Topic " + topicID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        TOPICS.get (topicID).addToGroup (groupID);
+    }
+    
     public synchronized static void close () throws Exception {
         for (TopicEntry entry : TOPICS.values ()) {
             entry.close (); // Closing restore files
@@ -107,10 +192,10 @@ public class OrganizationHistory {
         public void addMovement (Integer from, Integer to, long timestamp)
                 throws NoSuchElementException {
             // Critical zone just for one thread
-            // Value -1 is necessary for preventing situation when comes
+            // Value -1 is necessary for preventing situation when come
             // two requests (a -> b) and (b -> c) in a row, but first
             // wasn't completed
-            // The value -1 is impossible to be the is of group in MySQL
+            // The value -1 is impossible to be the id of group in MySQL
             // it can be broken just in case of bad request (! WARNING !)
             if (CURRENT.compareAndSet (from, -1)) {
                 StudentEntry last = ENTRIES.get (ENTRIES.size () - 1);
@@ -277,7 +362,6 @@ public class OrganizationHistory {
         // Special time that can't be BEFORE any other time
         private static final Time ENDLESS = new Time (Long.MAX_VALUE);
         
-        @SuppressWarnings ("unused")
         public void addToGroup (int groupID) {
             if (PERIODS.containsKey (groupID)) {
                 String message = "Topic " + TOPIC_ID + " is already in group " + groupID;

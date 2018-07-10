@@ -100,10 +100,13 @@ public class Run {
 	            ConnectionPool.getInstance ().close ();
 	            // Closing all file descriptors
 	            OrganizationHistory.close ();
+	            // Closing connection with database
+	            MySQLAdapter.getInstance ().close ();
 	            // Stopping server in logging events
 	            Log.close ();
 	        } catch (Exception e) {}
 		    
+		    System.out.println ("Server stopped");
 		    // Exit from application with code
 	        System.exit (code);
 		});
