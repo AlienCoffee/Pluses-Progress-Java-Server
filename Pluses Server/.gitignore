@@ -3,6 +3,7 @@
 /log/
 /lib/
 /build/
+/topics/
 
 .project
 .classpath

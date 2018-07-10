@@ -98,6 +98,8 @@ public class Run {
 	            
 	            // Stopping server in processing commands
 	            ConnectionPool.getInstance ().close ();
+	            // Closing all file descriptors
+	            OrganizationHistory.close ();
 	            // Stopping server in logging events
 	            Log.close ();
 	        } catch (Exception e) {}

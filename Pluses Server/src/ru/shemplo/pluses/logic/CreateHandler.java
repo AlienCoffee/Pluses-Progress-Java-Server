@@ -34,6 +34,10 @@ public class CreateHandler {
             case "STUDENT":
                 runCreateStudent (tokens, message, connection);
                 break;
+                
+            case "TOPIC":
+                runCreateTopic (tokens, message, connection);
+                break;
             
             default:
                 String content = "Failed to create `" + type + "` (unknown type)";
@@ -60,6 +64,16 @@ public class CreateHandler {
         params = Arguments.parse (params, tokens, null);
         
         String query = SQLUtil.makeInsertQuery ("students", params);
+        _runInsertQuery (query, connection);
+    }
+    
+    private static void runCreateTopic (StringTokenizer tokens, AppMessage message,
+            AppConnection connection) {
+        Map <String, String> params = new HashMap <> ();
+        params.put ("created", SQLUtil.getDatetime ());
+        params = Arguments.parse (params, tokens, "title");
+        
+        String query = SQLUtil.makeInsertQuery ("topics", params);
         _runInsertQuery (query, connection);
     }
     
