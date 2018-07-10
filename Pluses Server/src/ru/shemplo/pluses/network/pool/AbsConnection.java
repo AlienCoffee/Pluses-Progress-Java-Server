@@ -91,7 +91,7 @@ public abstract class AbsConnection implements AppConnection {
                 
                 isPending = true;
                 active = now;
-            // wait 10 seconds after PING message
+            // wait 15 seconds after PING message
             } else if (now - active > 30 * 1000 && isPending) {
                 // Dropping connection by the reason of unused
                 isConnected = false;
