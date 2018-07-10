@@ -2,6 +2,7 @@ package ru.shemplo.pluses.logic;
 
 import static ru.shemplo.pluses.network.message.AppMessage.MessageDirection.*;
 import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.*;
+import static ru.shemplo.pluses.struct.OrganizationHistory.*;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -54,7 +55,7 @@ public class CreateHandler {
         params = Arguments.parse (params, tokens, "title");
         
         String query = SQLUtil.makeInsertQuery ("groups", params);
-        _runInsertQuery (query, connection);
+        _runInsertQuery (message, query, "group", connection);
     }
     
     private static void runCreateStudent (StringTokenizer tokens, AppMessage message,
@@ -64,7 +65,7 @@ public class CreateHandler {
         params = Arguments.parse (params, tokens, null);
         
         String query = SQLUtil.makeInsertQuery ("students", params);
-        _runInsertQuery (query, connection);
+        _runInsertQuery (message, query, "student", connection);
     }
     
     private static void runCreateTopic (StringTokenizer tokens, AppMessage message,
@@ -74,10 +75,11 @@ public class CreateHandler {
         params = Arguments.parse (params, tokens, "title");
         
         String query = SQLUtil.makeInsertQuery ("topics", params);
-        _runInsertQuery (query, connection);
+        _runInsertQuery (message, query, "topic", connection);
     }
     
-    private static void _runInsertQuery (String query, AppConnection connection) {
+    private static void _runInsertQuery (AppMessage message, String query, 
+            String type,AppConnection connection) {
         MySQLAdapter adapter = MySQLAdapter.getInstance ();
         
         try {
@@ -86,24 +88,34 @@ public class CreateHandler {
             if (statement.executeUpdate () == 1) {
                 ResultSet keys = statement.getGeneratedKeys ();
                 if (!keys.next ()) { 
-                    Message error = new ControlMessage (STC, ERROR, 0, 
+                    Message error = new ControlMessage (message, STC, ERROR, 0, 
                         "Entry created successfully but `id` is unknown");
                     connection.sendMessage (error);
                     return;
                 }
                 
-                int id = keys.getInt (1);
-                Message success = new ControlMessage (STC, ID, id, "");
+                int newID = keys.getInt (1);
+             
+                // Also adding created line to history instance
+                switch (type) {
+                    case "student": createStudent (newID); break;
+                    case "group"  : break;
+                    case "topic"  : createTopic (newID); break;
+                }
+                
+                // Sending message to client with `id` of just created line
+                Message success = new ControlMessage (message, STC, ID, 
+                   newID, "New line inserted");
                 connection.sendMessage (success);
             } else {
-                Message error = new ControlMessage (STC, ERROR, 0, 
+                Message error = new ControlMessage (message, STC, ERROR, 0, 
                     "Entry wasn't created by unknown reason");
                 connection.sendMessage (error);
                 return;
             }
-        } catch (SQLException sqle) {
+        } catch (SQLException | IllegalStateException sqle) {
             Log.error (CommandHandler.class.getSimpleName (), sqle);
-            Message error = new ControlMessage (STC, ERROR, 0, 
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
                 "Entry wasn't created:\n" + sqle);
             connection.sendMessage (error);
         }
