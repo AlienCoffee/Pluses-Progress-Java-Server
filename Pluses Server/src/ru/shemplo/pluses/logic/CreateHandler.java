@@ -99,7 +99,7 @@ public class CreateHandler {
                 // Also adding created line to history instance
                 switch (type) {
                     case "student": createStudent (newID); break;
-                    case "group"  : break;
+                    case "group"  : createGroup (newID); break;
                     case "topic"  : createTopic (newID); break;
                 }
                 
@@ -113,10 +113,10 @@ public class CreateHandler {
                 connection.sendMessage (error);
                 return;
             }
-        } catch (SQLException | IllegalStateException sqle) {
-            Log.error (CommandHandler.class.getSimpleName (), sqle);
+        } catch (SQLException | IllegalStateException es) {
+            Log.error (CommandHandler.class.getSimpleName (), es);
             Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Entry wasn't created:\n" + sqle);
+                "Entry wasn't created:\n" + es);
             connection.sendMessage (error);
         }
     }

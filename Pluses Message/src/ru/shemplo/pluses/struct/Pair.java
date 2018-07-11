@@ -1,7 +1,14 @@
 package ru.shemplo.pluses.struct;
 
-public class Pair <F, S> {
+import java.io.Serializable;
+
+public class Pair <F, S> implements Serializable {
     
+    /**
+     * 
+     */
+    private static final long serialVersionUID = 8987198961832024934L;
+
     public final F F; public final S S;
     
     public Pair (final F f, final S s) {
