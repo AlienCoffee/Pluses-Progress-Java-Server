@@ -11,8 +11,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
-import java.sql.Time;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -72,11 +73,13 @@ public class OrganizationHistory {
                 Integer student = answer.getInt ("student"),
                         from = (Integer) answer.getObject ("from"),
                         to = (Integer) answer.getObject ("to");
-                Time time = answer.getTime ("time");
+                
+                Calendar calendar = Calendar.getInstance ();
+                Timestamp timestamp = answer.getTimestamp ("time", calendar);
                 if (!STUDENTS.containsKey (student)) { continue; }
                 
                 // Here try/catch is not necessary because it's just single thread
-                STUDENTS.get (student).addMovement (from, to, time.getTime ());
+                STUDENTS.get (student).addMovement (from, to, timestamp);
             }
             
             query = "SELECT `id` FROM `topics` ORDER BY `id` ASC";
@@ -125,7 +128,7 @@ public class OrganizationHistory {
         STUDENTS.putIfAbsent (studentID, new StudentHistory (studentID));
     }
     
-    public static void insertStudent (int studentID, int groupID, long timestamp) {
+    public static void insertStudent (int studentID, int groupID, Timestamp timestamp) {
         if (!existsStudent (studentID) || !existsGroup (groupID)) {
             String message = "Student " + studentID + " or group " 
                              + groupID + " doesn't exist";
@@ -134,6 +137,18 @@ public class OrganizationHistory {
         
         StudentHistory student = STUDENTS.get (studentID);
         student.addMovement (null, groupID, timestamp);
+    }
+    
+    public static void moveStudent (int studentID, Integer fromID, 
+            Integer toID, Timestamp timestamp) {
+        if (!existsStudent (studentID) || !existsGroup (toID)) {
+            String message = "Student " + studentID + " or group " 
+                             + toID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        StudentHistory student = STUDENTS.get (studentID);
+        student.addMovement (fromID, toID, timestamp);
     }
     
     ////////////////
@@ -176,6 +191,35 @@ public class OrganizationHistory {
         }
         
         TOPICS.get (topicID).addToGroup (groupID);
+    }
+    
+    public static List <Pair <Integer, Integer>> getToics (Map <String, String> params) {
+        List <Pair <Integer, Integer>> topics = new ArrayList <> ();
+        if (params.containsKey ("id")) {
+            int studentID = Integer.parseInt (params.get ("id"));
+            if (!existsStudent (studentID)) {
+                String message = "Student " + studentID + " doesn't exist";
+                throw new IllegalStateException (message);
+            }
+            
+            try {
+                topics.addAll (STUDENTS.get (studentID).getTopics ());  
+            } catch (Exception e) {
+                e.printStackTrace ();
+            }
+        } else {
+            Set <Integer> tmp = new HashSet <> (TOPICS.keySet ());
+            for (int topic : tmp) {
+                // Here is not important the visibility of topic
+                topics.add (Pair.mp (topic, 0));
+            }
+        }
+        
+        return topics;
+    }
+    
+    public static List <Pair <Integer, Integer>> getToics () {
+        return getToics (new HashMap <> ());
     }
     
     ////////////////
@@ -221,19 +265,17 @@ public class OrganizationHistory {
         return getGroups (new HashMap <> ());
     }
     
-    /////////////////////////
-    
-    public static List <Pair <Integer, Integer>> getTopics () {
-        return STUDENTS.get (1).getTopics ();
-    }
-    
-    /////////////////////////
+    ///////////////////////////////////////////////////////////
+    // ----------------------------------------------------- //
+    ///////////////////////////////////////////////////////////
     
     public synchronized static void close () throws Exception {
         for (TopicEntry entry : TOPICS.values ()) {
             entry.close (); // Closing restore files
         }
     }
+    
+    // Support classes //
     
     private static class StudentHistory {
         
@@ -249,14 +291,14 @@ public class OrganizationHistory {
             this.ENTRIES = new ArrayList <> ();
             // When student just created it moves to
             // undefined group with value NULL
-            ENTRIES.add (new StudentEntry (null, 0));
+            ENTRIES.add (new StudentEntry (null, new Timestamp (0)));
         }
         
         public int getStudentID () {
             return STUDENT_ID;
         }
         
-        public void addMovement (Integer from, Integer to, long timestamp)
+        public void addMovement (Integer from, Integer to, Timestamp timestamp)
                 throws NoSuchElementException {
             // Critical zone just for one thread
             // Value -1 is necessary for preventing situation when come
@@ -267,10 +309,8 @@ public class OrganizationHistory {
             if (CURRENT.compareAndSet (from, -1)) {
                 StudentEntry last = ENTRIES.get (ENTRIES.size () - 1);
                 ENTRIES.add (new StudentEntry (to, timestamp));
-                if (last.TIMESTAMP > timestamp) {
-                    ENTRIES.sort ((a, b) -> 
-                        Long.compare (a.TIMESTAMP, b.TIMESTAMP)
-                    );
+                if (last.TIMESTAMP.after (timestamp)) {
+                    ENTRIES.sort ((a, b) -> a.TIMESTAMP.compareTo (b.TIMESTAMP));
                 }
                 
                 CURRENT.set (to);
@@ -293,37 +333,43 @@ public class OrganizationHistory {
             Set <Integer> keys = TOPICS.keySet ();
             topicI: for (Integer topicID : keys) {
                 TopicEntry topic = TOPICS.get (topicID);
-                Set <Integer> topicGroups = topic.getGroups ();
-                if (topicGroups.contains (last.GROUP)) {
-                    // BINGO! topic belongs to the same group as student
-                    topics.add (Pair.mp (topic.TOPIC_ID, 0));
-                    continue;
-                }
+                Set <Integer> groups = topic.getGroups ();
                 
-                for (int i = 0; i < save.size () - 1; i++) {
-                    StudentEntry entry = save.get (i);
-                    
-                    Time move = new Time (entry.TIMESTAMP);
-                    int groupID = entry.GROUP;
-                    
-                    if (!topicGroups.contains (topicID)) { continue; }
-                    
-                    Time created = topic.getCreated (groupID),
-                         expirated = topic.getExpired (groupID);
-                    Time nextEntry = new Time (save.get (i + 1).TIMESTAMP);
-                    
-                    // This is situation when topic has unlimited time and important
-                    // just a time when it was created
-                    if (Objects.isNull (expirated) && created.before (nextEntry)) {
-                        // BINGO! student was in group when topic was created
+                if (groups.contains (last.GROUP)) {
+                    // This topic is inserted to this group
+                    // That's why if student is in some group, so ->
+                    // all topics of such group must be related to him
+                    topics.add (Pair.mp (topicID, 0));
+                } else {
+                    // Here is topics that was available to student
+                    // when he/she was in another group(s)
+                    for (int i = 0; i < ENTRIES.size () - 1; i++) {
+                        StudentEntry student = ENTRIES.get (i);
+                        if (Objects.isNull (student.GROUP)) {
+                            // This is a period when student was
+                            // only added to system and wasn't
+                            // inserted to some group
+                            continue;
+                        }
+                        
+                        int groupID = student.GROUP;
+                        Timestamp created = topic.getCreated (groupID),
+                                  expired = topic.getExpired (groupID);
+                        Timestamp nextMove = ENTRIES.get (i + 1).TIMESTAMP;
+                        
+                        if (student.TIMESTAMP.after (expired) || nextMove.before (created)) {
+                            // These are cases when student didn't get information about this topic
+                            // 
+                            // Schema presentation:
+                            // Time line   |------------------------------------------------------------------>|
+                            // User group  |                       ... | group N | ...                         |
+                            // Bad example |  ... | topic T1 | ...                       ... | topic T2 | ...  |
+                            // 
+                            // In this case if student in `group N` then he can't see topics T1 and T2
+                            continue;
+                        }
+                        
                         topics.add (Pair.mp (topicID, 1));
-                        continue topicI;
-                    // This is situation when topic has expirated time and student
-                    // can miss this topic
-                    } else if (!Objects.isNull (expirated) && created.before (nextEntry)
-                            && expirated.before (move)) {
-                        // BINGO! student was in group when topic was created
-                        topics.add (Pair.mp (topicID, 2));
                         continue topicI;
                     }
                 }
@@ -334,10 +380,10 @@ public class OrganizationHistory {
         
         private static class StudentEntry {
             
-            public final long TIMESTAMP;
+            public final Timestamp TIMESTAMP;
             public final Integer GROUP;
             
-            public StudentEntry (Integer group, long timestamp) {
+            public StudentEntry (Integer group, Timestamp timestamp) {
                 this.TIMESTAMP = timestamp;
                 this.GROUP = group;
             }
@@ -355,7 +401,7 @@ public class OrganizationHistory {
         
         private File file;
         
-        private final ConcurrentMap <Integer, Pair <Time, Time>> 
+        private final ConcurrentMap <Integer, Pair <Timestamp, Timestamp>> 
             PERIODS = new ConcurrentHashMap <> ();
         private final List <String> TASKS = new ArrayList <> ();
         
@@ -409,7 +455,8 @@ public class OrganizationHistory {
                     is.read (bExpired, 0, bExpired.length);
                     long expired = BytesManip.B2L (bExpired);
                     
-                    Pair <Time, Time> period = Pair.mp (new Time (created), new Time (expired));
+                    Pair <Timestamp, Timestamp> period = 
+                        Pair.mp (new Timestamp (created), new Timestamp (expired));
                     PERIODS.put (groupID, period);
                 }
             } catch (IOException ioe) {
@@ -426,7 +473,7 @@ public class OrganizationHistory {
         }
         
         // Special time that can't be BEFORE any other time
-        private static final Time ENDLESS = new Time (Long.MAX_VALUE);
+        private static final Timestamp ENDLESS = new Timestamp (Long.MAX_VALUE);
         
         public void addToGroup (int groupID) {
             if (PERIODS.containsKey (groupID)) {
@@ -434,8 +481,8 @@ public class OrganizationHistory {
                 throw new IllegalStateException (message);
             }
             
-            Time time = new Time (System.currentTimeMillis ());
-            Pair <Time, Time> period = Pair.mp (time, ENDLESS);
+            Timestamp time = new Timestamp (System.currentTimeMillis ());
+            Pair <Timestamp, Timestamp> period = Pair.mp (time, ENDLESS);
             PERIODS.putIfAbsent (groupID, period); 
             _writeTopicToFile ();
         }
@@ -451,7 +498,7 @@ public class OrganizationHistory {
             _writeTopicToFile ();
         }
         
-        public Time getCreated (int groupID) {
+        public Timestamp getCreated (int groupID) {
             if (PERIODS.containsKey (groupID)) {
                 return PERIODS.get (groupID).F;
             }
@@ -459,7 +506,7 @@ public class OrganizationHistory {
             return ENDLESS;
         }
         
-        public Time getExpired (int groupID) {
+        public Timestamp getExpired (int groupID) {
             if (PERIODS.containsKey (groupID)) {
                 return PERIODS.get (groupID).S;
             }
@@ -468,9 +515,9 @@ public class OrganizationHistory {
         }
         
         @SuppressWarnings ("unused")
-        public void setExpired (int groupID, Time time) {
+        public void setExpired (int groupID, Timestamp time) {
             if (!PERIODS.containsKey (groupID)) { return; }
-            Pair <Time, Time> period = PERIODS.get (groupID);
+            Pair <Timestamp, Timestamp> period = PERIODS.get (groupID);
             PERIODS.put (groupID, Pair.mp (period.F, time));
             _writeTopicToFile ();
         }
@@ -513,7 +560,7 @@ public class OrganizationHistory {
                 
                 Set <Integer> keys = PERIODS.keySet ();
                 for (int groupID : keys) {
-                    Pair <Time, Time> period = PERIODS.get (groupID);
+                    Pair <Timestamp, Timestamp> period = PERIODS.get (groupID);
                     byte [] bGroupID = BytesManip.I2B (groupID);
                     os.write (bGroupID, 0, bGroupID.length);
                     

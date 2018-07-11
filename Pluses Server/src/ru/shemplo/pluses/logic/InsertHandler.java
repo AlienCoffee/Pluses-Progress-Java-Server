@@ -5,6 +5,7 @@ import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.*;
 
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.StringTokenizer;
@@ -85,14 +86,14 @@ public class InsertHandler {
         }
         
         try {
-            long time = System.currentTimeMillis ();
+            Timestamp time = new Timestamp (System.currentTimeMillis ());
             // Also adding changes to history instance
             OrganizationHistory.insertStudent (studentID, groupID, time);
             
             MySQLAdapter adapter = MySQLAdapter.getInstance ();
             
             Map <String, String> params = new HashMap <> ();
-            params.put ("time", SQLUtil.getDatetime (time));
+            params.put ("time", SQLUtil.getDatetime (time.getTime ()));
             params.put ("student", "" + studentID);
             params.put ("to", "" + groupID);
             
