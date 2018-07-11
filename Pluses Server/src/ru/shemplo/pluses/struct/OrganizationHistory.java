@@ -14,6 +14,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -126,6 +127,31 @@ public class OrganizationHistory {
         
         // Adding instance of new student to control structure
         STUDENTS.putIfAbsent (studentID, new StudentHistory (studentID));
+    }
+    
+    public static List <Pair <Integer, Integer>> getStudents (Map <String, String> params) {
+        List <Pair <Integer, Integer>> students = new ArrayList <> ();
+        if (params.containsKey ("id")) {
+            int groupID = Integer.parseInt (params.get ("id"));
+            if (!existsGroup (groupID)) {
+                String message = "Group " + groupID + " doesn't exist";
+                throw new IllegalStateException (message);
+            }
+            
+            try {
+                students.addAll (GROUPS.get (groupID).getStudents ());  
+            } catch (Exception e) {
+                e.printStackTrace ();
+            }
+        } else {
+            Set <Integer> tmp = new HashSet <> (STUDENTS.keySet ());
+            for (int student : tmp) {
+                // Here is not important the visibility of student
+                students.add (Pair.mp (student, 0));
+            }
+        }
+        
+        return students;
     }
     
     public static void insertStudent (int studentID, int groupID, Timestamp timestamp) {
@@ -296,6 +322,18 @@ public class OrganizationHistory {
         
         public int getStudentID () {
             return STUDENT_ID;
+        }
+        
+        public Pair <Integer, Set <Integer>> getGroups () {
+            Set <Integer> groups = new HashSet <> ();
+            
+            int size = ENTRIES.size (); // To prevent data-race
+            for (int i = 0; i < size - 1; i++) {
+                StudentEntry entry = ENTRIES.get (i);
+                groups.add (entry.GROUP);
+            }
+            
+            return Pair.mp (ENTRIES.get (size - 1).GROUP, groups);
         }
         
         public void addMovement (Integer from, Integer to, Timestamp timestamp)
@@ -591,6 +629,24 @@ public class OrganizationHistory {
             this.GROUP_ID = groupID;
         }
         
+        public Collection <Pair <Integer, Integer>> getStudents () {
+            List <Pair <Integer, Integer>> students = new ArrayList <> ();
+            Set <Integer> save = new HashSet <> (STUDENTS.keySet ());
+            for (Integer studentID : save) {
+                StudentHistory student = STUDENTS.get (studentID);
+                Pair <Integer, Set <Integer>> pair = student.getGroups ();
+                if (Integer.compare (GROUP_ID, pair.F) == 0) {
+                    // Visibility 0 means that it's current state
+                    students.add (Pair.mp (studentID, 0));
+                } else if (pair.S.contains (GROUP_ID)) {
+                    // Visibility 1 means that was some time ago
+                    students.add (Pair.mp (studentID, 1));
+                }
+            }
+            
+            return students;
+        }
+
         public int getGroupID () {
             return GROUP_ID;
         }
