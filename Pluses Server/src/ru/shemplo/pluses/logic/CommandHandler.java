@@ -33,6 +33,10 @@ public class CommandHandler {
 	                InsertHandler.runInsert (st, mes, connect);
 	                break;
 	                
+	            case "SELECT": // command to get something
+	                SelectHandler.runSelect (st, mes, connect);
+	                break;
+	                
 	            case "DELETE":
 	                break;
 	                

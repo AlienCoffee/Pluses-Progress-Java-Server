@@ -18,6 +18,7 @@ import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.AppMessage.MessageDirection;
 import ru.shemplo.pluses.network.message.CommandMessage;
 import ru.shemplo.pluses.network.message.ControlMessage;
+import ru.shemplo.pluses.network.message.ListMessage;
 import ru.shemplo.pluses.network.message.PPMessage;
 
 public class Run {
@@ -35,7 +36,7 @@ public class Run {
     
 	public static void main (String ... args) throws UnknownHostException, 
 	        IOException, ClassNotFoundException {
-		Socket socket = new Socket ("localhost", 1999);
+		Socket socket = new Socket ("194.67.212.44", 1999);
 		OutputStream os = socket.getOutputStream ();
 		InputStream is = socket.getInputStream ();
 		
@@ -65,6 +66,9 @@ public class Run {
 	                } else if (tmp instanceof PPMessage) {
 	                    PPMessage ping = (PPMessage) tmp;
 	                    System.out.println ("Value: " + ping.VALUE);
+	                } else if (tmp instanceof ListMessage) {
+	                    ListMessage <?> list = (ListMessage <?>) tmp;
+	                    System.out.println (list.getList ());
 	                } else {
 	                    System.out.println (tmp);
 	                }
