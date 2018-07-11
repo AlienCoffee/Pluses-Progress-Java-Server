@@ -41,6 +41,10 @@ public class SelectHandler {
             case "TOPICS":
                 runSelectTopics (tokens, message, connection);
                 break;
+                
+            case "STUDENTS":
+                runSelectStudents (tokens, message, connection);
+                break;
             
             default:
                 String content = "Failed to select `" + type + "` (unknown type)";
@@ -60,13 +64,23 @@ public class SelectHandler {
         connection.sendMessage (list);
     }
     
+    private static void runSelectStudents (StringTokenizer tokens, AppMessage message,
+            AppConnection connection) {
+        Map <String, String> params = new HashMap <> ();
+        params = Arguments.parse (params, tokens, null);
+        
+        List <Pair <Integer, Integer>> students = OrganizationHistory.getStudents (params);
+        Message list = new ListMessage <> (message, STC, students);
+        connection.sendMessage (list);
+    }
+    
     private static void runSelectTopics (StringTokenizer tokens, AppMessage message,
             AppConnection connection) {
         Map <String, String> params = new HashMap <> ();
         params = Arguments.parse (params, tokens, null);
         
-        List <Pair <Integer, Integer>> groups = OrganizationHistory.getToics (params);
-        Message list = new ListMessage <> (message, STC, groups);
+        List <Pair <Integer, Integer>> topics = OrganizationHistory.getToics (params);
+        Message list = new ListMessage <> (message, STC, topics);
         connection.sendMessage (list);
     }
     
