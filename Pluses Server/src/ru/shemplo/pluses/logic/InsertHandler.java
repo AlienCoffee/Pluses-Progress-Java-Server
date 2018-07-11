@@ -34,7 +34,7 @@ public class InsertHandler {
                 break;
             
             default:
-                String content = "Failed to create `" + type + "` (unknown type)";
+                String content = "Failed to insert `" + type + "` (unknown type)";
                 AppMessage error = new ControlMessage (STC, ERROR, 0, content);
                 Log.error (CommandHandler.class.getSimpleName (), content);
                 connection.sendMessage (error);

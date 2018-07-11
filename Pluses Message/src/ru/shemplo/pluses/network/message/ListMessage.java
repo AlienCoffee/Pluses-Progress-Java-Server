@@ -1,11 +1,10 @@
 package ru.shemplo.pluses.network.message;
 
-import java.io.Serializable;
 import java.util.List;
 
 import org.json.JSONObject;
 
-public class ListMessage <T extends Serializable> extends AbsAppMessage {
+public class ListMessage <T> extends AbsAppMessage {
 
     /**
      * 

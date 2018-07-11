@@ -106,7 +106,7 @@ public class Run {
 	            Log.close ();
 	        } catch (Exception e) {}
 		    
-		    System.out.println ("Server stopped");
+		    System.out.println ("-== Server stopped ==-");
 		    // Exit from application with code
 	        System.exit (code);
 		});

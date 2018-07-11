@@ -13,8 +13,10 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Time;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Objects;
 import java.util.Set;
@@ -33,6 +35,8 @@ public class OrganizationHistory {
         STUDENTS = new ConcurrentHashMap <> ();
     private static final ConcurrentMap <Integer, TopicEntry>
         TOPICS = new ConcurrentHashMap <> ();
+    private static final ConcurrentMap <Integer, GroupEntry>
+        GROUPS = new ConcurrentHashMap <> ();
     
     public synchronized static void init () {
         STUDENTS.clear (); TOPICS.clear ();
@@ -47,6 +51,16 @@ public class OrganizationHistory {
                 
                 StudentHistory student = new StudentHistory (id);
                 STUDENTS.put (student.getStudentID (), student);
+            }
+            
+            query = "SELECT * FROM `groups` ORDER BY `id` ASC";
+            statement = mysql.createStatement ();
+            answer    = statement.executeQuery (query);
+            while (answer.next ()) {
+                int groupID = answer.getInt ("id");
+                
+                GroupEntry group = new GroupEntry (groupID);
+                GROUPS.put (group.getGroupID (), group);
             }
             
             query = "SELECT * FROM `movements` ORDER BY `time` ASC";
@@ -112,8 +126,9 @@ public class OrganizationHistory {
     }
     
     public static void insertStudent (int studentID, int groupID, long timestamp) {
-        if (!existsStudent (studentID)) {
-            String message = "Student " + studentID + " doesn't exist";
+        if (!existsStudent (studentID) || !existsGroup (groupID)) {
+            String message = "Student " + studentID + " or group " 
+                             + groupID + " doesn't exist";
             throw new IllegalStateException (message);
         }
         
@@ -154,13 +169,65 @@ public class OrganizationHistory {
     }
     
     public static void insertTopic (int topicID, int groupID, long timestamp) {
-        if (!existsTopic (topicID)) {
-            String message = "Topic " + topicID + " doesn't exist";
+        if (!existsTopic (topicID) || !existsGroup (groupID)) {
+            String message = "Topic " + topicID + " or group " 
+                             + groupID + " doesn't exist";
             throw new IllegalStateException (message);
         }
         
         TOPICS.get (topicID).addToGroup (groupID);
     }
+    
+    ////////////////
+    // ---------- //
+    // FOR GROUPS //
+    // ---------- //
+    ////////////////
+    
+    public static boolean existsGroup (int groupID) {
+        return GROUPS.containsKey (groupID);
+    }
+    
+    /**
+     * <p>
+     * <b>!! WARNING !!</b>
+     * Don't call this method if you are not sure what you're doing.
+     * The consequences of calling this method can be fatal for
+     * current start of server. Correct state can be restored only
+     * after calling method {@link #init() init} (or after restart)
+     * </p>
+     * 
+     * @param groupID
+     * 
+     */
+    public static void createGroup (int groupID) {
+        if (existsGroup (groupID)) {
+            String message = "Group " + groupID + " is already created";
+            throw new IllegalStateException (message);
+        }
+        
+        // Adding instance of new student to control structure
+        GROUPS.putIfAbsent (groupID, new GroupEntry (groupID));
+    }
+    
+    public static List <Integer> getGroups (Map <String, String> params) {
+        List <Integer> groups = new ArrayList <> (GROUPS.keySet ());
+        
+        groups.sort (Integer::compare);
+        return groups;
+    }
+    
+    public static List <Integer> getGroups () {
+        return getGroups (new HashMap <> ());
+    }
+    
+    /////////////////////////
+    
+    public static List <Pair <Integer, Integer>> getTopics () {
+        return STUDENTS.get (1).getTopics ();
+    }
+    
+    /////////////////////////
     
     public synchronized static void close () throws Exception {
         for (TopicEntry entry : TOPICS.values ()) {
@@ -216,7 +283,6 @@ public class OrganizationHistory {
             }
         }
         
-        @SuppressWarnings ("unused")
         public List <Pair <Integer, Integer>> getTopics () {
             List <Pair <Integer, Integer>> topics = new ArrayList <> ();
             List <StudentEntry> save = new ArrayList <> (ENTRIES);
@@ -283,7 +349,7 @@ public class OrganizationHistory {
     private static class TopicEntry implements AutoCloseable {
         
         public static final String CLASS_NAME = 
-            OrganizationHistory.class.getSimpleName ();
+            TopicEntry.class.getSimpleName ();
         
         public final int TOPIC_ID;
         
@@ -462,6 +528,24 @@ public class OrganizationHistory {
             } catch (IOException ioe) {
                 Log.error (CLASS_NAME, ioe);
             }
+        }
+        
+    }
+    
+    private static class GroupEntry {
+        
+        @SuppressWarnings ("unused")
+        public static final String CLASS_NAME = 
+            GroupEntry.class.getSimpleName ();
+            
+        public final int GROUP_ID;
+        
+        public GroupEntry (int groupID) {
+            this.GROUP_ID = groupID;
+        }
+        
+        public int getGroupID () {
+            return GROUP_ID;
         }
         
     }
