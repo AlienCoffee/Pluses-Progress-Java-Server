@@ -2,7 +2,11 @@ package ru.shemplo.pluses.struct;
 
 import java.io.Serializable;
 
-public class Pair <F, S> implements Serializable {
+import org.json.JSONObject;
+
+import ru.shemplo.pluses.network.message.HasJSON;
+
+public class Pair <F, S> implements Serializable, HasJSON {
     
     /**
      * 
@@ -18,6 +22,12 @@ public class Pair <F, S> implements Serializable {
     @Override
     public String toString () {
         return "<" + F + "; " + S + ">";
+    }
+    
+    @Override
+    public JSONObject toJSON (JSONObject root) {
+        root.put ("pair", new Object [] {F, S});
+        return root;
     }
     
     public static <F, S> Pair <F, S> mp (final F f, final S s) {
