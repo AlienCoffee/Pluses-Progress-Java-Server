@@ -1,6 +1,9 @@
 package ru.shemplo.pluses.network.message;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
@@ -27,7 +30,25 @@ public class ListMessage <T> extends AbsAppMessage {
     public JSONObject toJSON (JSONObject root) {
         JSONObject tmp = super.toJSON (root);
         tmp.put ("type", "listmessage");
-        tmp.put ("list", LIST);
+        if (!Objects.isNull (LIST) && LIST.size () > 0) {
+            List <Object> out = new ArrayList <> ();
+            if (LIST.get (0) instanceof HasJSON) {
+                for (int i = 0; i < LIST.size (); i++) {
+                    HasJSON object = (HasJSON) LIST.get (i);
+                    out.add (object.toJSON (new JSONObject ()));
+                }
+            } else {
+                out.addAll (
+                    LIST.stream ().map (Object::toString)
+                        .collect (Collectors.toList ())
+                );
+            }
+            
+            tmp.put ("list", out);
+        } else {
+            tmp.put ("list", LIST);
+        }
+        
         return tmp;
     }
     
