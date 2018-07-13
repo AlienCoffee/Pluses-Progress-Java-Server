@@ -138,11 +138,7 @@ public class OrganizationHistory {
                 throw new IllegalStateException (message);
             }
             
-            try {
-                students.addAll (GROUPS.get (groupID).getStudents ());  
-            } catch (Exception e) {
-                e.printStackTrace ();
-            }
+            students.addAll (GROUPS.get (groupID).getStudents ());
         } else {
             Set <Integer> tmp = new HashSet <> (STUDENTS.keySet ());
             for (int student : tmp) {
@@ -151,6 +147,7 @@ public class OrganizationHistory {
             }
         }
         
+        students.sort ((a, b) -> Integer.compare (a.F, b.F));
         return students;
     }
     
@@ -228,11 +225,7 @@ public class OrganizationHistory {
                 throw new IllegalStateException (message);
             }
             
-            try {
-                topics.addAll (STUDENTS.get (studentID).getTopics ());  
-            } catch (Exception e) {
-                e.printStackTrace ();
-            }
+            topics.addAll (STUDENTS.get (studentID).getTopics ());  
         } else {
             Set <Integer> tmp = new HashSet <> (TOPICS.keySet ());
             for (int topic : tmp) {
@@ -241,6 +234,7 @@ public class OrganizationHistory {
             }
         }
         
+        topics.sort ((a, b) -> Integer.compare (a.F, b.F));
         return topics;
     }
     
@@ -282,8 +276,23 @@ public class OrganizationHistory {
     
     public static List <Integer> getGroups (Map <String, String> params) {
         List <Integer> groups = new ArrayList <> (GROUPS.keySet ());
-        
         groups.sort (Integer::compare);
+        return groups;
+    }
+    
+    public static List <Integer> getStudentGroups (int studentID) {
+        if (!existsStudent (studentID)) {
+            String message = "Student " + studentID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        Pair <Integer, Set <Integer>> 
+            tmp = STUDENTS.get (studentID).getGroups ();
+        tmp.S.remove (null);
+        
+        List <Integer> groups = new ArrayList <> ();
+        groups.add (tmp.F); groups.addAll (tmp.S);
+        
         return groups;
     }
     
