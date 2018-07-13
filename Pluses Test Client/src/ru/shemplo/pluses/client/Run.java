@@ -37,7 +37,8 @@ public class Run {
 	public static void main (String ... args) throws UnknownHostException, 
 	        IOException, ClassNotFoundException {
 	    //Socket socket = new Socket ("194.67.212.44", 1999);
-	    Socket socket = new Socket ("localhost", 1999);
+	    //Socket socket = new Socket ("localhost", 1999);
+	    Socket socket = new Socket ("shemplo.ru", 1999);
 		OutputStream os = socket.getOutputStream ();
 		InputStream is = socket.getInputStream ();
 		

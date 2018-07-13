@@ -93,6 +93,10 @@ public abstract class AbsConnection implements AppConnection {
                 active = now;
             // wait 15 seconds after PING message
             } else if (now - active > 30 * 1000 && isPending) {
+                // Sending notification that server closed connection
+                Message buy = new PPMessage (Ping.BUY);
+                sendMessage (buy);
+                
                 // Dropping connection by the reason of unused
                 isConnected = false;
             }

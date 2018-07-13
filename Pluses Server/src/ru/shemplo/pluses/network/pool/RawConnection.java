@@ -59,7 +59,7 @@ public class RawConnection extends AbsConnection {
                     }
                     
                     reserved = -1;
-                } else if (reserved == -1 && IS.available () > 4) {
+                } else if (reserved == -1 && IS.available () >= 4) {
                     byte [] buffer = new byte [4];
                     IS.read (buffer, 0, buffer.length);
                     reserved = BytesManip.B2I (buffer);
