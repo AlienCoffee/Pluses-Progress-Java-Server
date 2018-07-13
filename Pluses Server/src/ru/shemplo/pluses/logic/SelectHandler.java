@@ -59,9 +59,16 @@ public class SelectHandler {
         Map <String, String> params = new HashMap <> ();
         params = Arguments.parse (params, tokens, null);
         
-        List <Integer> groups = OrganizationHistory.getGroups (params);
-        Message list = new ListMessage <> (message, STC, groups);
-        connection.sendMessage (list);
+        if (params.containsKey ("id")) {
+            int studentID = Integer.parseInt (params.get ("id"));
+            List <Integer> groups = OrganizationHistory.getStudentGroups (studentID);
+            Message list = new ListMessage <> (message, STC, groups);
+            connection.sendMessage (list);  
+        } else {
+            List <Integer> groups = OrganizationHistory.getGroups (params);
+            Message list = new ListMessage <> (message, STC, groups);
+            connection.sendMessage (list);  
+        }
     }
     
     private static void runSelectStudents (StringTokenizer tokens, AppMessage message,
