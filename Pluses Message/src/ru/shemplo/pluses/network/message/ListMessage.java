@@ -3,7 +3,6 @@ package ru.shemplo.pluses.network.message;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 import org.json.JSONObject;
 
@@ -38,10 +37,13 @@ public class ListMessage <T> extends AbsAppMessage {
                     out.add (object.toJSON (new JSONObject ()));
                 }
             } else {
-                out.addAll (
-                    LIST.stream ().map (Object::toString)
-                        .collect (Collectors.toList ())
-                );
+                for (Object object : LIST) {
+                    if (!(object instanceof Number)) {
+                        out.add ("" + object);
+                    } else {
+                        out.add (object);
+                    }
+                }
             }
             
             tmp.put ("list", out);
