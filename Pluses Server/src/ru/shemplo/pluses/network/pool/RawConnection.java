@@ -93,14 +93,12 @@ public class RawConnection extends AbsConnection {
         if (!isConnected ()) { return; }
         
         if (Objects.isNull (message)) {
-            if (message instanceof AppMessage) {
-                AppMessage app = (AppMessage) message;
-                if (!STC.equals (app.getDirection ())) {
-                    return;  // Message is empty or has invalid direction
-                }
-            }
-            
             return; // Message is empty or has invalid direction
+        } else if (message instanceof AppMessage) {
+            AppMessage app = (AppMessage) message;
+            if (!STC.equals (app.getDirection ())) {
+                return;  // Message is empty or has invalid direction
+            }
         }
         
         try {
