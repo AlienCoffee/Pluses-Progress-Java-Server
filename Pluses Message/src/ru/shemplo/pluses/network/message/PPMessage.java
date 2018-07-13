@@ -10,7 +10,7 @@ public class PPMessage implements Message {
     private static final long serialVersionUID = -1496297117110071620L;
 
     public static enum Ping {
-        PING, PONG
+        PING, PONG, BUY
     }
     
     private final long TIMESTAMP;
