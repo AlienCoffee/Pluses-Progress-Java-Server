@@ -8,8 +8,11 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.StringTokenizer;
 
 import ru.shemplo.pluses.db.MySQLAdapter;
@@ -18,6 +21,7 @@ import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.ControlMessage;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.pool.AppConnection;
+import ru.shemplo.pluses.struct.OrganizationHistory;
 import ru.shemplo.pluses.util.Arguments;
 import ru.shemplo.pluses.util.SQLUtil;
 
@@ -39,6 +43,10 @@ public class CreateHandler {
             case "TOPIC":
                 runCreateTopic (tokens, message, connection);
                 break;
+                
+            case "TASK":
+                runCreateTask (tokens, message, connection);
+                break;
             
             default:
                 String content = "Failed to create `" + type + "` (unknown type)";
@@ -46,6 +54,29 @@ public class CreateHandler {
                 Log.error (CommandHandler.class.getSimpleName (), content);
                 connection.sendMessage (error);
         }
+    }
+    
+    private static final Set <String> CREATE_TASK_PARAMS = new HashSet <> (
+        Arrays.asList ("topic", "title")
+    );
+    
+    private static void runCreateTask (StringTokenizer tokens, AppMessage message,
+            AppConnection connection) {
+        Map <String, String> params = new HashMap <> ();
+        params = Arguments.parse (params, tokens, null);
+        
+        for (String name : CREATE_TASK_PARAMS) {
+            if (params.containsKey (name)) { continue; }
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
+                "Create task failed, parameter missed: [" + name + "]");
+            connection.sendMessage (error);
+            return;
+        }
+        
+        int topicID = Integer.parseInt (params.get ("topic"));
+        String title = params.get ("title");
+        
+        OrganizationHistory.createTask (topicID, title);
     }
     
     private static void runCreateGroup (StringTokenizer tokens, AppMessage message,

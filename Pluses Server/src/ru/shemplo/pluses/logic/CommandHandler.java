@@ -37,8 +37,12 @@ public class CommandHandler {
 	                SelectHandler.runSelect (st, mes, connect);
 	                break;
 	                
-	            case "MOVE": // command to move something
+	            case "MOVE":   // command to move something
 	                MoveHandler.runMove (st, mes, connect);
+	                break;
+	                
+	            case "UPDATE": // command to update something
+	                UpdateHandler.runCreate (st, mes, connect);
 	                break;
 	                
 	            case "DELETE":
