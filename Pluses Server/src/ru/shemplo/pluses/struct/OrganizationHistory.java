@@ -242,6 +242,26 @@ public class OrganizationHistory {
         return getToics (new HashMap <> ());
     }
     
+    public static void createTask (int topicID, String title) {
+        if (!existsTopic (topicID)) {
+            String message = "Topic " + topicID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        TopicEntry topic = TOPICS.get (topicID);
+        topic.createTask (title);
+    }
+    
+    public static void renameTask (int topicID, int taskID, String title) {
+        if (!existsTopic (topicID)) {
+            String message = "Topic " + topicID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        TopicEntry topic = TOPICS.get (topicID);
+        topic.renameTask (taskID, title);
+    }
+    
     ////////////////
     // ---------- //
     // FOR GROUPS //
@@ -450,7 +470,7 @@ public class OrganizationHistory {
         
         private final ConcurrentMap <Integer, Pair <Timestamp, Timestamp>> 
             PERIODS = new ConcurrentHashMap <> ();
-        private final List <String> TASKS = new ArrayList <> ();
+        private final List <Pair <Integer, String>> TASKS = new ArrayList <> ();
         
         public TopicEntry (int topicID) {
             this.TOPIC_ID = topicID;
@@ -482,11 +502,15 @@ public class OrganizationHistory {
                 for (int i = 0; i < tasks; i++) {
                     is.read (bSize, 0, bSize.length);
                     int length = BytesManip.B2I (bSize);
-                    byte [] buffer = new byte [length];
+                    
+                    is.read (bSize, 0, bSize.length);
+                    int id = BytesManip.B2I (bSize);
+                    
+                    byte [] buffer = new byte [length - 4];
                     is.read (buffer, 0, buffer.length);
                     
                     String name = new String (buffer, StandardCharsets.UTF_8);
-                    TASKS.add (name);
+                    TASKS.add (Pair.mp (id, name));
                 }
                 
                 byte [] bGroupID = new byte [4], bCreated = new byte [8], 
@@ -570,18 +594,39 @@ public class OrganizationHistory {
         }
         
         @SuppressWarnings ("unused")
-        public List <String> getTasks () {
+        public List <Pair <Integer, String>> getTasks () {
             return new ArrayList <> (TASKS);
         }
         
-        @SuppressWarnings ("unused")
-        public synchronized void addTask (String task) {
+        public synchronized void createTask (String task) {
             if (Objects.isNull (task) || task.length () == 0) {
                 String message = "Name of task can't be emply";
                 throw new IllegalArgumentException (message);
             }
             
-            this.TASKS.add (task);
+            int id = TASKS.stream ().mapToInt (p -> p.F)
+                          .max ().getAsInt () + 1;
+            this.TASKS.add (Pair.mp (id, task));
+            _writeTopicToFile ();
+        }
+        
+        public void renameTask (int taskID, String title) {
+            int size = TASKS.size (); // to prevent concurrent
+            for (int i = 0; i < size; i++) {
+                Pair <Integer, String> task = TASKS.get (i);
+                if (task.F != taskID) { continue; }
+                
+                synchronized (task) {
+                    TASKS.set (i, Pair.mp (task.F, title));
+                }
+                
+                _writeTopicToFile ();
+                return;
+            }
+            
+            String message = 
+                "Topic " + TOPIC_ID + " doesn't have task " + taskID;
+            throw new IllegalStateException (message);
         }
 
         @Override
@@ -593,15 +638,18 @@ public class OrganizationHistory {
             try (
                 OutputStream os = new FileOutputStream (file, false);
             ) {
-                List <String> tasks = new ArrayList <> (TASKS);
+                List <Pair <Integer, String>> tasks = new ArrayList <> (TASKS);
                 byte [] bSize = BytesManip.I2B (tasks.size ());
                 os.write (bSize, 0, bSize.length);
                 
-                for (String task : tasks) {
-                    byte [] buffer = task.getBytes (StandardCharsets.UTF_8);
-                    bSize = BytesManip.I2B (buffer.length);
+                for (Pair <Integer, String> task : tasks) {
+                    byte [] buffer = task.S.getBytes (StandardCharsets.UTF_8);
+                    bSize = BytesManip.I2B (buffer.length + 4);
                     os.write (bSize, 0, bSize.length);
-                    os.write (buffer, 0, buffer.length);
+                    
+                    byte [] bID = BytesManip.I2B (task.F);
+                    os.write (bID, 0, bID.length);        // 4 bytes for id
+                    os.write (buffer, 0, buffer.length);  // other bytes for name
                 }
                 os.flush ();
                 
