@@ -45,6 +45,10 @@ public class SelectHandler {
             case "STUDENTS":
                 runSelectStudents (tokens, message, connection);
                 break;
+                
+            case "TASKS":
+                runSelectTasks (tokens, message, connection);
+                break;
             
             default:
                 String content = "Failed to select `" + type + "` (unknown type)";
@@ -52,6 +56,24 @@ public class SelectHandler {
                 Log.error (CommandHandler.class.getSimpleName (), content);
                 connection.sendMessage (error);
         }
+    }
+    
+    private static void runSelectTasks (StringTokenizer tokens, AppMessage message,
+            AppConnection connection) {
+        Map <String, String> params = new HashMap <> ();
+        params = Arguments.parse (params, tokens, null);
+        
+        if (!params.containsKey ("topic")) {
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
+                "Select tasks failed, parameter missed: [topic]");
+            connection.sendMessage (error);
+            return;
+        }
+        
+        int topicID = Integer.parseInt (params.get ("topic"));
+        List <Pair <Integer, String>> tasks = OrganizationHistory.getTasks (topicID);
+        Message list = new ListMessage <> (message, STC, tasks);
+        connection.sendMessage (list);  
     }
     
     private static void runSelectGroups (StringTokenizer tokens, AppMessage message,
@@ -67,7 +89,7 @@ public class SelectHandler {
         } else {
             List <Integer> groups = OrganizationHistory.getGroups (params);
             Message list = new ListMessage <> (message, STC, groups);
-            connection.sendMessage (list);  
+            connection.sendMessage (list);
         }
     }
     

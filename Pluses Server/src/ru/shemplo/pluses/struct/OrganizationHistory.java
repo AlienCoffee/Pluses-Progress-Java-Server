@@ -262,6 +262,16 @@ public class OrganizationHistory {
         topic.renameTask (taskID, title);
     }
     
+    public static List <Pair <Integer, String>> getTasks (int topicID) {
+        if (!existsTopic (topicID)) {
+            String message = "Topic " + topicID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        TopicEntry topic = TOPICS.get (topicID);
+        return topic.getTasks ();
+    }
+    
     ////////////////
     // ---------- //
     // FOR GROUPS //
@@ -470,7 +480,8 @@ public class OrganizationHistory {
         
         private final ConcurrentMap <Integer, Pair <Timestamp, Timestamp>> 
             PERIODS = new ConcurrentHashMap <> ();
-        private final List <Pair <Integer, String>> TASKS = new ArrayList <> ();
+        private final List <Pair <Integer, String>> 
+            TASKS = new ArrayList <> ();
         
         public TopicEntry (int topicID) {
             this.TOPIC_ID = topicID;
@@ -593,7 +604,6 @@ public class OrganizationHistory {
             _writeTopicToFile ();
         }
         
-        @SuppressWarnings ("unused")
         public List <Pair <Integer, String>> getTasks () {
             return new ArrayList <> (TASKS);
         }
