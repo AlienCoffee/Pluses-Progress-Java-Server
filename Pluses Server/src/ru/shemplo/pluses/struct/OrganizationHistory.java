@@ -174,6 +174,11 @@ public class OrganizationHistory {
         student.addMovement (fromID, toID, timestamp);
     }
     
+    public static void insertTry (int groupID, int studentID, 
+            int topicID, int taskID, boolean verd, long timestamp) {
+        
+    }
+    
     ////////////////
     // ---------- //
     // FOR TOPICS //

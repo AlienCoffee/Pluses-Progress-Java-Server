@@ -73,7 +73,7 @@ public class SelectHandler {
         int topicID = Integer.parseInt (params.get ("topic"));
         List <Pair <Integer, String>> tasks = OrganizationHistory.getTasks (topicID);
         Message list = new ListMessage <> (message, STC, tasks);
-        connection.sendMessage (list);  
+        connection.sendMessage (list);
     }
     
     private static void runSelectGroups (StringTokenizer tokens, AppMessage message,
@@ -85,7 +85,7 @@ public class SelectHandler {
             int studentID = Integer.parseInt (params.get ("id"));
             List <Integer> groups = OrganizationHistory.getStudentGroups (studentID);
             Message list = new ListMessage <> (message, STC, groups);
-            connection.sendMessage (list);  
+            connection.sendMessage (list);
         } else {
             List <Integer> groups = OrganizationHistory.getGroups (params);
             Message list = new ListMessage <> (message, STC, groups);

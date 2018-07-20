@@ -38,8 +38,8 @@ public class InsertHandler {
                 runInsertTopic (tokens, message, connection);
                 break;
                 
-            case "VERDICT":
-                runInsertVerdict (tokens, message, connection);
+            case "TRY":
+                runInsertTry (tokens, message, connection);
                 break;
             
             default:
@@ -50,19 +50,41 @@ public class InsertHandler {
         }
     }
     
-    private static final Set <String> INSERT_VERDICT_PARAMS = new HashSet <> (
-        Arrays.asList ("student", "group", "topic", "task")
+    private static final Set <String> INSERT_TRY_PARAMS = new HashSet <> (
+        Arrays.asList ("student", "group", "topic", "task", "res")
     );
     
-    private static void runInsertVerdict (StringTokenizer tokens, AppMessage message, 
+    private static void runInsertTry (StringTokenizer tokens, AppMessage message, 
             AppConnection connection) {
         Map <String, String> params = new HashMap <> ();
         params = Arguments.parse (params, tokens, null);
         
-        for (String name : INSERT_VERDICT_PARAMS) {
+        for (String name : INSERT_TRY_PARAMS) {
             if (params.containsKey (name)) { continue; }
             Message error = new ControlMessage (message, STC, ERROR, 0, 
                 "Insert verdict failed, parameter missed: [" + name + "]");
+            connection.sendMessage (error);
+            return;
+        }
+        
+        int studentID = Integer.parseInt (params.get ("student"));
+        int groupID = Integer.parseInt (params.get ("group"));
+        int topicID = Integer.parseInt (params.get ("topic"));
+        int taskID = Integer.parseInt (params.get ("task"));
+        int verdict = Integer.parseInt (params.get ("res"));
+        long timestamp = System.currentTimeMillis ();
+        
+        try {
+            boolean isOK = 1 == verdict;
+            OrganizationHistory.insertTry (groupID, 
+                studentID, topicID, taskID, isOK, timestamp);
+            MySQLAdapter adapter = MySQLAdapter.getInstance ();
+            Statement statement = adapter.getDB ().createStatement ();
+            String query = SQLUtil.makeInsertQuery ("tries", params);
+            statement.execute (query);
+        } catch (SQLException | IllegalStateException se) {
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
+                "Insert try failed:\n" + se);
             connection.sendMessage (error);
             return;
         }
