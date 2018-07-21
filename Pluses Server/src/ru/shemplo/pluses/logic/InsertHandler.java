@@ -51,7 +51,7 @@ public class InsertHandler {
     }
     
     private static final Set <String> INSERT_TRY_PARAMS = new HashSet <> (
-        Arrays.asList ("student", "group", "topic", "task", "res")
+        Arrays.asList ("student", "group", "topic", "task", "res", "teacher")
     );
     
     private static void runInsertTry (StringTokenizer tokens, AppMessage message, 
@@ -67,17 +67,18 @@ public class InsertHandler {
             return;
         }
         
+        Timestamp timestamp = new Timestamp (System.currentTimeMillis ());
+        int teacherID = Integer.parseInt (params.get ("teacher"));
         int studentID = Integer.parseInt (params.get ("student"));
         int groupID = Integer.parseInt (params.get ("group"));
         int topicID = Integer.parseInt (params.get ("topic"));
         int taskID = Integer.parseInt (params.get ("task"));
         int verdict = Integer.parseInt (params.get ("res"));
-        long timestamp = System.currentTimeMillis ();
         
         try {
             boolean isOK = 1 == verdict;
-            OrganizationHistory.insertTry (groupID, 
-                studentID, topicID, taskID, isOK, timestamp);
+            OrganizationHistory.insertTry (groupID, studentID, 
+                topicID, taskID, teacherID, isOK, timestamp);
             MySQLAdapter adapter = MySQLAdapter.getInstance ();
             Statement statement = adapter.getDB ().createStatement ();
             String query = SQLUtil.makeInsertQuery ("tries", params);

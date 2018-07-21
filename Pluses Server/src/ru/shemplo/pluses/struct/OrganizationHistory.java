@@ -174,9 +174,25 @@ public class OrganizationHistory {
         student.addMovement (fromID, toID, timestamp);
     }
     
-    public static void insertTry (int groupID, int studentID, 
-            int topicID, int taskID, boolean verd, long timestamp) {
+    public static void insertTry (int groupID, int studentID, int topicID, 
+            int taskID, int teacherID, boolean verd, Timestamp timestamp) {
+        if (!existsGroup (groupID)) {
+            String message = "Group " + groupID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
         
+        if (!existsStudent (studentID)) {
+            String message = "Student " + studentID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        if (!existsTopic (topicID)) {
+            String message = "Topic " + topicID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        StudentHistory student = STUDENTS.get (studentID);
+        student.addTaskTry (groupID, topicID, verd, timestamp);
     }
     
     ////////////////
@@ -460,6 +476,13 @@ public class OrganizationHistory {
             return topics;
         }
         
+        public void addTaskTry (int groupID, int topicID, boolean verdict, Timestamp timestamp) {
+            
+            // TRIES.putIfAbsent (groupID, new HashMap <> ());
+            // TRIES.get (groupID).putIfAbsent (topicID, new TopicTries ());
+            // TRIES.get (groupID).get (topicID).insertTry (verdict, 0);
+        }
+        
         private static class StudentEntry {
             
             public final Timestamp TIMESTAMP;
@@ -468,6 +491,31 @@ public class OrganizationHistory {
             public StudentEntry (Integer group, Timestamp timestamp) {
                 this.TIMESTAMP = timestamp;
                 this.GROUP = group;
+            }
+            
+        }
+        
+        private static class TopicTries {
+            
+            private int teacher = -1;
+            private int verdict = 0;
+            
+            public void insertTry (boolean verdict, int teacherID) {
+                if (this.verdict > 0) { return; }
+                
+                this.verdict = verdict ? -this.verdict 
+                               : this.verdict - 1;
+                this.teacher = teacherID;
+            }
+            
+            @SuppressWarnings ("unused")
+            public int getVerdict () {
+                return verdict;
+            }
+            
+            @SuppressWarnings ("unused")
+            public int getTeacher () {
+                return teacher;
             }
             
         }
