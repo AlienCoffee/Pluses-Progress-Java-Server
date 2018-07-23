@@ -1,17 +1,43 @@
 package ru.shemplo.pluses.util;
 
+import static ru.shemplo.pluses.network.message.AppMessage.MessageDirection.*;
+import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.*;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang.StringEscapeUtils;
 
+import ru.shemplo.pluses.network.message.AppMessage;
+import ru.shemplo.pluses.network.message.ControlMessage;
+import ru.shemplo.pluses.network.message.Message;
+import ru.shemplo.pluses.network.pool.AppConnection;
+
 public class Arguments {
 
+    public static Map <String, String> readAndCheck (String action, Set <String> paramsSet,
+            StringTokenizer tokens, AppMessage message, AppConnection connection) {
+        Map <String, String> params = parse (new HashMap <> (), tokens, null);
+        
+        for (String name : paramsSet) {
+            if (params.containsKey (name)) { continue; }
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
+                action + " failed, parameter missed: [" + name + "]");
+            connection.sendMessage (error);
+            
+            // Special signal that error was sent to client
+            return null;
+        }
+        
+        return params;
+    }
+    
     public static Map <String, String> parse (Map <String, String> base, 
             StringTokenizer tokens, String first) {
         List <String> args = new ArrayList <> ();

@@ -92,6 +92,24 @@ public class OrganizationHistory {
                 TopicEntry topic = new TopicEntry (topicID);
                 TOPICS.put (topic.getTopicID (), topic);
             }
+            
+            query = "SELECT * FROM `tries` ORDER BY `time` ASC";
+            statement = mysql.createStatement ();
+            answer    = statement.executeQuery (query);
+            while (answer.next ()) {
+                int studentID = answer.getInt ("student");
+                StudentHistory student = STUDENTS.get (studentID);
+                
+                int teacherID = answer.getInt ("teacher");
+                int groupID = answer.getInt ("group");
+                int topicID = answer.getInt ("topic");
+                int taskID = answer.getInt ("task");
+                boolean verdict = answer.getInt ("verdict") == 1;
+                
+                Calendar calendar = Calendar.getInstance ();
+                Timestamp timestamp = answer.getTimestamp ("time", calendar);
+                student.addTry (groupID, topicID, taskID, teacherID, verdict, timestamp);
+            }
         } catch (SQLException sqle) {
             sqle.printStackTrace ();
         }
@@ -175,7 +193,7 @@ public class OrganizationHistory {
     }
     
     public static void insertTry (int groupID, int studentID, int topicID, 
-            int taskID, int teacherID, boolean verd, Timestamp timestamp) {
+            int taskID, int teacherID, boolean verdict, Timestamp timestamp) {
         if (!existsGroup (groupID)) {
             String message = "Group " + groupID + " doesn't exist";
             throw new IllegalStateException (message);
@@ -192,7 +210,43 @@ public class OrganizationHistory {
         }
         
         StudentHistory student = STUDENTS.get (studentID);
-        student.addTaskTry (groupID, topicID, verd, timestamp);
+        
+        // STRICT AREA // IF IT'S NECESSARY THEN COMMENT //
+        int currentGroupID = student.getGroups ().F;
+        if (currentGroupID != groupID) {
+            String message = "Student " + studentID + " now in group " + currentGroupID
+                    + " (request was for group " + groupID + ")";
+            throw new IllegalStateException (message);
+        }
+        
+        List <Pair <Integer, Integer>> topics = student.getTopics ();
+        boolean isTopicCorrect = false;
+        for (int i = 0; i < topics.size (); i++) {
+            if (topics.get (i).F == topicID 
+                && topics.get (i).S == 0) {
+                isTopicCorrect = true; 
+                break;
+            }
+        }
+        
+        if (!isTopicCorrect) {
+            String message = "Student " + studentID + " doesn't know topic " + topicID;
+            throw new IllegalStateException (message);
+        }
+        
+        List <Pair <Integer, String>> tasks = TOPICS.get (topicID).getTasks ();
+        boolean isTaskCorrect = false;
+        for (int i = 0; i < tasks.size (); i++) {
+            
+        }
+        
+        if (!isTaskCorrect) {
+            String message = "Task " + taskID + " doesn't exist in topic " + topicID;
+            throw new IllegalStateException (message);
+        }
+        // END OF STRICT AREA // TILL THIS LINE NECCESSARY TO COMMENT //
+        
+        student.addTry (groupID, topicID, taskID, teacherID, verdict, timestamp);
     }
     
     ////////////////
@@ -378,6 +432,9 @@ public class OrganizationHistory {
             // When student just created it moves to
             // undefined group with value NULL
             ENTRIES.add (new StudentEntry (null, new Timestamp (0)));
+            
+            // -------------------------------------
+            this.PROGRESS = new ConcurrentHashMap <> ();
         }
         
         public int getStudentID () {
@@ -476,13 +533,6 @@ public class OrganizationHistory {
             return topics;
         }
         
-        public void addTaskTry (int groupID, int topicID, boolean verdict, Timestamp timestamp) {
-            
-            // TRIES.putIfAbsent (groupID, new HashMap <> ());
-            // TRIES.get (groupID).putIfAbsent (topicID, new TopicTries ());
-            // TRIES.get (groupID).get (topicID).insertTry (verdict, 0);
-        }
-        
         private static class StudentEntry {
             
             public final Timestamp TIMESTAMP;
@@ -495,27 +545,52 @@ public class OrganizationHistory {
             
         }
         
-        private static class TopicTries {
+        private final ConcurrentMap <Trio <Integer, Integer, Integer>, TaskProgress> PROGRESS;
+        
+        public void addTry (int groupID, int topicID, int taskID,
+                int teacherID, boolean verdict, Timestamp timestamp) {
+            Trio <Integer, Integer, Integer> key = Trio.mt (groupID, topicID, taskID);
+            PROGRESS.putIfAbsent (key, new TaskProgress (groupID, topicID, taskID));
+            PROGRESS.get (key).addTry (teacherID, verdict, timestamp);
+        }
+        
+        private class TaskProgress {
             
-            private int teacher = -1;
-            private int verdict = 0;
+            @SuppressWarnings ("unused")
+            public final int GROUP_ID, TOPIC_ID, TASK_ID;
             
-            public void insertTry (boolean verdict, int teacherID) {
-                if (this.verdict > 0) { return; }
+            private final List <Trio <Integer, Boolean, Timestamp>> 
+                TRIES = new ArrayList <> ();
+            
+            public TaskProgress (int groupID, int topicID, int taskID) {
+                this.GROUP_ID = groupID;
+                this.TOPIC_ID = topicID;
+                this.TASK_ID = taskID;
+            }
+            
+            public synchronized void addTry (int teacherID, 
+                    boolean verdict, Timestamp time) {
+                TRIES.add (Trio.mt (teacherID, verdict, time));
+                if (TRIES.size () > 1) {
+                    Trio <?, ?, Timestamp> prev = TRIES.get (TRIES.size () - 2);
+                    if (time.before (prev.T)) {
+                        TRIES.sort ((a, b) -> -a.T.compareTo (b.T));
+                    }
+                }
+            }
+            
+            @SuppressWarnings ("unused")
+            public synchronized int getVerdict () {
+                int verdict = 0;
+                for (int i = 0; i < TRIES.size (); i++) {
+                    if (!TRIES.get (i).S) { 
+                        verdict = -Math.abs (verdict) - 1; 
+                    } else { 
+                        verdict = Math.abs (verdict);
+                    }
+                }
                 
-                this.verdict = verdict ? -this.verdict 
-                               : this.verdict - 1;
-                this.teacher = teacherID;
-            }
-            
-            @SuppressWarnings ("unused")
-            public int getVerdict () {
                 return verdict;
-            }
-            
-            @SuppressWarnings ("unused")
-            public int getTeacher () {
-                return teacher;
             }
             
         }
