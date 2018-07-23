@@ -7,9 +7,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.StringTokenizer;
 
@@ -51,29 +51,24 @@ public class InsertHandler {
     }
     
     private static final Set <String> INSERT_TRY_PARAMS = new HashSet <> (
-        Arrays.asList ("student", "group", "topic", "task", "res", "teacher")
+        Arrays.asList ("student", "group", "topic", "task", "verdict", "teacher")
     );
     
     private static void runInsertTry (StringTokenizer tokens, AppMessage message, 
             AppConnection connection) {
-        Map <String, String> params = new HashMap <> ();
-        params = Arguments.parse (params, tokens, null);
-        
-        for (String name : INSERT_TRY_PARAMS) {
-            if (params.containsKey (name)) { continue; }
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert verdict failed, parameter missed: [" + name + "]");
-            connection.sendMessage (error);
-            return;
-        }
+        Map <String, String> params = Arguments.readAndCheck ("insert try", 
+                INSERT_TRY_PARAMS, tokens, message, connection);
+        if (Objects.isNull (params)) { return; }
         
         Timestamp timestamp = new Timestamp (System.currentTimeMillis ());
+        params.put ("time", SQLUtil.getDatetime ());
+        
         int teacherID = Integer.parseInt (params.get ("teacher"));
         int studentID = Integer.parseInt (params.get ("student"));
+        int verdict = Integer.parseInt (params.get ("verdict"));
         int groupID = Integer.parseInt (params.get ("group"));
         int topicID = Integer.parseInt (params.get ("topic"));
         int taskID = Integer.parseInt (params.get ("task"));
-        int verdict = Integer.parseInt (params.get ("res"));
         
         try {
             boolean isOK = 1 == verdict;
@@ -90,42 +85,19 @@ public class InsertHandler {
             return;
         }
     }
+    
+    private static final Set <String> INSERT_STUDENT_PARAMS = new HashSet <> (
+        Arrays.asList ("group", "student")
+    );
 
     private static void runInsertStudent (StringTokenizer tokens, AppMessage message, 
             AppConnection connection) {
-        if (!tokens.hasMoreTokens ()) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert student failed, argument missed: [student id]");
-            connection.sendMessage (error);
-            return;
-        }
+        Map <String, String> params = Arguments.readAndCheck ("insert topic", 
+                INSERT_STUDENT_PARAMS, tokens, message, connection);
+        if (Objects.isNull (params)) { return; }
         
-        int studentID = -1;
-        try {
-            studentID = Integer.parseInt (tokens.nextToken ());
-        } catch (NumberFormatException nfe) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert student failed, argument [student id] must be integer");
-            connection.sendMessage (error);
-            return;
-        }
-        
-        if (!tokens.hasMoreTokens ()) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert student failed, argument missed: [group id]");
-            connection.sendMessage (error);
-            return;
-        }
-        
-        int groupID = -1;
-        try {
-            groupID = Integer.parseInt (tokens.nextToken ());
-        } catch (NumberFormatException nfe) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert student failed, argument [group id] must be integer");
-            connection.sendMessage (error);
-            return;
-        }
+        int studentID = Integer.parseInt (params.get ("student"));
+        int groupID = Integer.parseInt (params.get ("group"));
         
         if (!OrganizationHistory.existsStudent (studentID)) {
             Message error = new ControlMessage (message, STC, ERROR, 0, 
@@ -140,10 +112,7 @@ public class InsertHandler {
             OrganizationHistory.insertStudent (studentID, groupID, time);
             
             MySQLAdapter adapter = MySQLAdapter.getInstance ();
-            
-            Map <String, String> params = new HashMap <> ();
             params.put ("time", SQLUtil.getDatetime (time.getTime ()));
-            params.put ("student", "" + studentID);
             params.put ("to", "" + groupID);
             
             String query = SQLUtil.makeInsertQuery ("movements", params);
@@ -157,41 +126,18 @@ public class InsertHandler {
         }
     }
     
+    private static final Set <String> INSERT_TOPIC_PARAMS = new HashSet <> (
+        Arrays.asList ("group", "topic")
+    );
+    
     private static void runInsertTopic (StringTokenizer tokens, AppMessage message, 
             AppConnection connection) {
-        if (!tokens.hasMoreTokens ()) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert topic failed, argument missed: [topic id]");
-            connection.sendMessage (error);
-            return;
-        }
+        Map <String, String> params = Arguments.readAndCheck ("insert topic", 
+                INSERT_TOPIC_PARAMS, tokens, message, connection);
+        if (Objects.isNull (params)) { return; }
         
-        int topicID = -1;
-        try {
-            topicID = Integer.parseInt (tokens.nextToken ());
-        } catch (NumberFormatException nfe) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert topic failed, argument [topic id] must be integer");
-            connection.sendMessage (error);
-            return;
-        }
-        
-        if (!tokens.hasMoreTokens ()) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert topic failed, argument missed: [group id]");
-            connection.sendMessage (error);
-            return;
-        }
-        
-        int groupID = -1;
-        try {
-            groupID = Integer.parseInt (tokens.nextToken ());
-        } catch (NumberFormatException nfe) {
-            Message error = new ControlMessage (message, STC, ERROR, 0, 
-                "Insert topic failed, argument [group id] must be integer");
-            connection.sendMessage (error);
-            return;
-        }
+        int groupID = Integer.parseInt (params.get ("group"));
+        int topicID = Integer.parseInt (params.get ("topic"));
         
         if (!OrganizationHistory.existsTopic (topicID)) {
             Message error = new ControlMessage (message, STC, ERROR, 0, 
