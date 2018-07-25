@@ -31,6 +31,10 @@ public class CommandMessage extends AbsAppMessage {
         this (null, direction, command);
     }
     
+    public CommandMessage (MessageDirection direction, String command, int value) {
+        this (null, direction, command, value);
+    }
+    
     @Override
     public JSONObject toJSON (JSONObject root) {
         JSONObject tmp = super.toJSON (root);
