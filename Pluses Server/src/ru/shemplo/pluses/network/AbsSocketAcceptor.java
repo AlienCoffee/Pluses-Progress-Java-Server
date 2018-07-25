@@ -37,11 +37,16 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 					try {
 						Thread.sleep ((tries + 1) * 1000); // n * 10 seconds
 						
+						// FIXME: this is unknown error (no progress after death)
+						/*
 						synchronized (THREADS) {
 							if (WAIT_HANDSHAKE.size () == 0 
 								&& THREADS.size () > 1 && tries >= 5) {
+							    System.out.println ("Hand thread died (" + thread.getId () + ")");
+							    System.out.println ("Threads: " + THREADS);
 								// Thread has nothing to do -> remove it
-								THREADS.remove (Thread.currentThread ());
+								THREADS.remove (thread);
+								System.out.println ("Message after death: " + THREADS);
 								return;
 							}
 							
@@ -50,6 +55,7 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 								tries = 1;
 							}
 						}
+						*/
 					} catch (InterruptedException ie) {
 						return;
 					}

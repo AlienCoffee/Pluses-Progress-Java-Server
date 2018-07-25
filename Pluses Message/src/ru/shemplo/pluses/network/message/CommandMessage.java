@@ -11,13 +11,28 @@ public class CommandMessage extends AbsAppMessage {
 
     protected final String COMMAND;
     
-    public CommandMessage (Message reply, MessageDirection direction, String command) {
+    protected final int VALUE;
+    
+    public CommandMessage (Message reply, MessageDirection direction, 
+            String command) {
         super (reply, direction);
         this.COMMAND = command;
+        this.VALUE = 0;
+    }
+    
+    public CommandMessage (Message reply, MessageDirection direction, 
+            String command, int value) {
+        super (reply, direction);
+        this.COMMAND = command;
+        this.VALUE = value;
     }
     
     public CommandMessage (MessageDirection direction, String command) {
         this (null, direction, command);
+    }
+    
+    public CommandMessage (MessageDirection direction, String command, int value) {
+        this (null, direction, command, value);
     }
     
     @Override
@@ -30,6 +45,10 @@ public class CommandMessage extends AbsAppMessage {
     
     public String getCommand () {
         return COMMAND;
+    }
+    
+    public int getValue () {
+        return VALUE;
     }
     
 }
