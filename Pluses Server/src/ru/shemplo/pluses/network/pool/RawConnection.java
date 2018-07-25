@@ -88,7 +88,7 @@ public class RawConnection extends AbsConnection {
     }
 
     @Override
-    public void sendMessage (Message message) {
+    public synchronized void sendMessage (Message message) {
         // Can't send message: connection closed
         if (!isConnected ()) { return; }
         
