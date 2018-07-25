@@ -25,7 +25,8 @@ public class MySQLAdapter implements AutoCloseable {
     public static MySQLAdapter getInstance () {
         if (Objects.isNull (ADAPTER)) {
             synchronized (MySQLAdapter.class) {
-                if (Objects.isNull (ADAPTER)) {
+                if (Objects.isNull (ADAPTER) 
+                    || !ADAPTER.testConnection ()) {
                     try {
                         ADAPTER = new MySQLAdapter ();
                     } catch (SQLException sqle) {
@@ -77,6 +78,17 @@ public class MySQLAdapter implements AutoCloseable {
     
     public Connection getDB () {
         return CONNECTION;
+    }
+    
+    public boolean testConnection () {
+        try {
+            Statement statement = CONNECTION.createStatement ();
+            statement.execute ("SELECT 1");
+        } catch (SQLException sqle) {
+            return false;
+        }
+        
+        return true;
     }
     
     public Set <String> getTableColumns (String table) {

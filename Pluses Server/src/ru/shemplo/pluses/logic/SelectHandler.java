@@ -145,7 +145,7 @@ public class SelectHandler {
                     values.add (answer.getString (i + 1));
                 }
                 
-                Message info = new ListMessage<> (message, STC, values);
+                Message info = new ListMessage <> (message, STC, values);
                 connection.sendMessage (info);
             } else {
                 Message error = new ControlMessage (message, STC, ERROR, 0, 
