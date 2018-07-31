@@ -449,7 +449,8 @@ public class OrganizationHistory {
                 StudentEntry entry = ENTRIES.get (i);
                 groups.add (entry.GROUP);
             }
-            
+
+            groups.remove (null);
             return Pair.mp (ENTRIES.get (size - 1).GROUP, groups);
         }
         
@@ -830,6 +831,8 @@ public class OrganizationHistory {
             for (Integer studentID : save) {
                 StudentHistory student = STUDENTS.get (studentID);
                 Pair <Integer, Set <Integer>> pair = student.getGroups ();
+                if (Objects.isNull (pair.F)) { continue; }
+                
                 if (Integer.compare (GROUP_ID, pair.F) == 0) {
                     // Visibility 0 means that it's current state
                     students.add (Pair.mp (studentID, 0));
