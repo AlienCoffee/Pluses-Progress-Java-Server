@@ -23,7 +23,8 @@ public class MySQLAdapter implements AutoCloseable {
     private static MySQLAdapter ADAPTER;
     
     public static MySQLAdapter getInstance () {
-        if (Objects.isNull (ADAPTER)) {
+        if (Objects.isNull (ADAPTER) 
+            || !ADAPTER.testConnection ()) {
             synchronized (MySQLAdapter.class) {
                 if (Objects.isNull (ADAPTER) 
                     || !ADAPTER.testConnection ()) {
