@@ -77,6 +77,9 @@ public class CreateHandler {
         String title = params.get ("title");
         
         OrganizationHistory.createTask (topicID, title);
+        
+        Message answer = new ControlMessage (message, STC, INFO, 0, "New task created");
+        connection.sendMessage (answer);
     }
     
     private static void runCreateGroup (StringTokenizer tokens, AppMessage message,

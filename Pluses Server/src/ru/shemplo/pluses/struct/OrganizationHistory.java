@@ -743,9 +743,15 @@ public class OrganizationHistory {
                 throw new IllegalArgumentException (message);
             }
             
-            int id = TASKS.stream ().mapToInt (p -> p.F)
-                          .max ().getAsInt () + 1;
-            this.TASKS.add (Pair.mp (id, task));
+            if (TASKS.isEmpty ()) {
+                this.TASKS.add (Pair.mp (1, task));
+                
+            } else {
+                int id = TASKS.stream ().mapToInt (p -> p.F)
+                            .max ().getAsInt () + 1;
+                this.TASKS.add (Pair.mp (id, task));
+            }
+            
             _writeTopicToFile ();
         }
         
