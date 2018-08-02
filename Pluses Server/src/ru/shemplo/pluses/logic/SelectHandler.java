@@ -24,6 +24,7 @@ import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.pool.AppConnection;
 import ru.shemplo.pluses.struct.OrganizationHistory;
 import ru.shemplo.pluses.struct.Pair;
+import ru.shemplo.pluses.struct.Trio;
 import ru.shemplo.pluses.util.Arguments;
 
 public class SelectHandler {
@@ -58,6 +59,10 @@ public class SelectHandler {
                 Message answer = new ControlMessage (message, STC, ControlType.INFO, 0, key);
                 connection.sendMessage (answer);
                 break;
+                
+            case "PROGRESS":
+                runSelectProgress (tokens, message, connection);
+                break;
             
             default:
                 String content = "Failed to select `" + type + "` (unknown type)";
@@ -65,6 +70,25 @@ public class SelectHandler {
                 Log.error (CommandHandler.class.getSimpleName (), content);
                 connection.sendMessage (error);
         }
+    }
+    
+    private static void runSelectProgress (StringTokenizer tokens, AppMessage message,
+            AppConnection connection) {
+        Map <String, String> params = new HashMap <> ();
+        params = Arguments.parse (params, tokens, null);
+        
+        if (!params.containsKey ("student")) {
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
+                "Select progress failed, parameter missed: [student]");
+            connection.sendMessage (error);
+            return;
+        }
+        
+        int studentID = Integer.parseInt (params.get ("student"));
+        List <Trio <Integer, Integer, Boolean>> results 
+            = OrganizationHistory.getProgress (studentID);
+        Message list = new ListMessage <> (message, STC, results);
+        connection.sendMessage (list);
     }
     
     private static void runSelectTasks (StringTokenizer tokens, AppMessage message,
