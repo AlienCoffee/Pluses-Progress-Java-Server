@@ -236,8 +236,11 @@ public class OrganizationHistory {
         
         List <Pair <Integer, String>> tasks = TOPICS.get (topicID).getTasks ();
         boolean isTaskCorrect = false;
-        for (int i = 0; i < tasks.size (); i++) {
-            
+        for (Pair <Integer, String> task : tasks) {
+            if (task.F == taskID) {
+                isTaskCorrect = true;
+                break;
+            }
         }
         
         if (!isTaskCorrect) {
@@ -247,6 +250,16 @@ public class OrganizationHistory {
         // END OF STRICT AREA // TILL THIS LINE NECCESSARY TO COMMENT //
         
         student.addTry (groupID, topicID, taskID, teacherID, verdict, timestamp);
+    }
+    
+    public static List <Trio <Integer, Integer, Boolean>> getProgress (int studentID) {
+        if (!existsStudent (studentID)) {
+            String message = "Student " + studentID + " doesn't exist";
+            throw new IllegalStateException (message);
+        }
+        
+        StudentHistory student = STUDENTS.get (studentID);
+        return student.getTries ();
     }
     
     ////////////////
@@ -555,6 +568,18 @@ public class OrganizationHistory {
             PROGRESS.get (key).addTry (teacherID, verdict, timestamp);
         }
         
+        public List <Trio <Integer, Integer, Boolean>> getTries () {
+            Set <Trio <Integer, Integer, Integer>> keys = new HashSet <> (PROGRESS.keySet ());
+            List <Trio <Integer, Integer, Boolean>> results = new ArrayList <> ();
+            for (Trio <Integer, Integer, Integer> key : keys) {
+                TaskProgress task = PROGRESS.get (key);
+                System.out.println (task.getVerdict ());
+                results.add (Trio.mt (task.TOPIC_ID, task.TASK_ID, task.getVerdict () > 0));
+            }
+            
+            return results;
+         }
+        
         private class TaskProgress {
             
             @SuppressWarnings ("unused")
@@ -571,6 +596,14 @@ public class OrganizationHistory {
             
             public synchronized void addTry (int teacherID, 
                     boolean verdict, Timestamp time) {
+                if (!TRIES.isEmpty ()) {
+                    Trio <?, Boolean, Timestamp> prev = TRIES.get (TRIES.size () - 1);
+                    if (verdict == prev.S && prev.T.before (time)) { 
+                        // This is the same verdict as it's now
+                        return;
+                    }
+                }
+                
                 TRIES.add (Trio.mt (teacherID, verdict, time));
                 if (TRIES.size () > 1) {
                     Trio <?, ?, Timestamp> prev = TRIES.get (TRIES.size () - 2);
@@ -580,14 +613,13 @@ public class OrganizationHistory {
                 }
             }
             
-            @SuppressWarnings ("unused")
             public synchronized int getVerdict () {
                 int verdict = 0;
                 for (int i = 0; i < TRIES.size (); i++) {
-                    if (!TRIES.get (i).S) { 
+                    if (!TRIES.get (i).S) { // If verdict == FALSE
                         verdict = -Math.abs (verdict) - 1; 
-                    } else { 
-                        verdict = Math.abs (verdict);
+                    } else { // If verdict == TRUE (accepted)
+                        verdict = Math.max (1, Math.abs (verdict));
                     }
                 }
                 
@@ -743,9 +775,15 @@ public class OrganizationHistory {
                 throw new IllegalArgumentException (message);
             }
             
-            int id = TASKS.stream ().mapToInt (p -> p.F)
-                          .max ().getAsInt () + 1;
-            this.TASKS.add (Pair.mp (id, task));
+            if (TASKS.isEmpty ()) {
+                this.TASKS.add (Pair.mp (1, task));
+                
+            } else {
+                int id = TASKS.stream ().mapToInt (p -> p.F)
+                            .max ().getAsInt () + 1;
+                this.TASKS.add (Pair.mp (id, task));
+            }
+            
             _writeTopicToFile ();
         }
         

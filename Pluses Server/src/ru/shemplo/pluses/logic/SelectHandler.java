@@ -1,7 +1,7 @@
 package ru.shemplo.pluses.logic;
 
-import static ru.shemplo.pluses.network.message.AppMessage.MessageDirection.*;
-import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.*;
+import static ru.shemplo.pluses.network.message.AppMessage.MessageDirection.STC;
+import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.ERROR;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -12,15 +12,19 @@ import java.util.List;
 import java.util.Map;
 import java.util.StringTokenizer;
 
+import org.apache.commons.lang.RandomStringUtils;
+
 import ru.shemplo.pluses.db.MySQLAdapter;
 import ru.shemplo.pluses.log.Log;
 import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.ControlMessage;
+import ru.shemplo.pluses.network.message.ControlMessage.ControlType;
 import ru.shemplo.pluses.network.message.ListMessage;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.pool.AppConnection;
 import ru.shemplo.pluses.struct.OrganizationHistory;
 import ru.shemplo.pluses.struct.Pair;
+import ru.shemplo.pluses.struct.Trio;
 import ru.shemplo.pluses.util.Arguments;
 
 public class SelectHandler {
@@ -49,6 +53,16 @@ public class SelectHandler {
             case "TASKS":
                 runSelectTasks (tokens, message, connection);
                 break;
+                
+            case "KEY":
+                String key = RandomStringUtils.random (32 + 32, true, true);
+                Message answer = new ControlMessage (message, STC, ControlType.INFO, 0, key);
+                connection.sendMessage (answer);
+                break;
+                
+            case "PROGRESS":
+                runSelectProgress (tokens, message, connection);
+                break;
             
             default:
                 String content = "Failed to select `" + type + "` (unknown type)";
@@ -56,6 +70,25 @@ public class SelectHandler {
                 Log.error (CommandHandler.class.getSimpleName (), content);
                 connection.sendMessage (error);
         }
+    }
+    
+    private static void runSelectProgress (StringTokenizer tokens, AppMessage message,
+            AppConnection connection) {
+        Map <String, String> params = new HashMap <> ();
+        params = Arguments.parse (params, tokens, null);
+        
+        if (!params.containsKey ("student")) {
+            Message error = new ControlMessage (message, STC, ERROR, 0, 
+                "Select progress failed, parameter missed: [student]");
+            connection.sendMessage (error);
+            return;
+        }
+        
+        int studentID = Integer.parseInt (params.get ("student"));
+        List <Trio <Integer, Integer, Boolean>> results 
+            = OrganizationHistory.getProgress (studentID);
+        Message list = new ListMessage <> (message, STC, results);
+        connection.sendMessage (list);
     }
     
     private static void runSelectTasks (StringTokenizer tokens, AppMessage message,
