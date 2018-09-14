@@ -5,4 +5,4 @@
  * @author Shemp
  *
  */
-package ru.shemplo.pluses.network.message;
+package ru.shemplo.pluses.network.message.app;
