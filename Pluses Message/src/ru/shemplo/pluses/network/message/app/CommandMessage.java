@@ -107,17 +107,50 @@ public class CommandMessage extends AbsAppMessage {
         }
     }
     
-    @SuppressWarnings ("unchecked")
-    public CommandMessage (DirectionWord direction, boolean repeated, CommandWord command, TypeWord type) {
-        this (null, direction, repeated, command, type);
+    @SafeVarargs
+    public CommandMessage (DirectionWord direction, boolean repeated, CommandWord command, 
+            TypeWord type, Pair <String, String>... params) {
+        this (null, direction, repeated, command, type, params);
     }
     
-    public CommandMessage (InputStream is) throws IOException {
-        super (is);
-        this.COM = null;
-        this.TYP = null;
+    public CommandMessage (byte [] header, InputStream is) throws IOException {
+        super (header, is);
         
-        this.PARAMS = new ArrayList <> ();
+        byte [] lheader = new byte [2];
+        is.read (lheader, 0, lheader.length);
+        
+        int commandOrdinal = BitManip.getBits (lheader [0], 4, 4);
+        this.COM = CommandWord.values () [commandOrdinal];
+        
+        int typeOrdinal = BitManip.getBits (lheader [0], 0, 4);
+        this.TYP = TypeWord.values () [typeOrdinal];
+        
+        if (DEBUG) {
+            System.out.println ("Comand message COM: " + COM + ", TYP: " + TYP);
+        }
+        
+        int parameters = BitManip.getBits (lheader [1], 0, 6);
+        this.PARAMS = new ArrayList <> (parameters);
+        byte [] buffer = new byte [1 << 16];
+        for (int i = 0; i < parameters; i++) {
+            int nameLength = is.read ();
+            is.read (buffer, 0, nameLength);
+            
+            String paramName = new String (buffer, 0, nameLength, StandardCharsets.UTF_8);
+            
+            is.read (lheader, 0, lheader.length);
+            int valueLength = ByteManip.B2I (lheader);
+            is.read (buffer, 0, valueLength);
+            
+            String paramValue = new String (buffer, 0, valueLength, StandardCharsets.UTF_8);
+            
+            Pair <String, String> entry = Pair.mp (paramName, paramValue);
+            PARAMS.add (entry);
+            
+            if (DEBUG) {
+                System.out.println ("Parameter entry " + entry);  
+            }
+        }
     }
     
     /**
@@ -145,7 +178,8 @@ public class CommandMessage extends AbsAppMessage {
         try (
             ByteArrayOutputStream baos = new ByteArrayOutputStream ();
         ) {
-            baos.write (BitManip.genMessageHeader (DIRECTION, 0, IS_REPLY, NEED_VERIFICATION, IS_REPEATED));
+            int messageOrdinal = MessageWord.COMMAND.ordinal ();
+            baos.write (BitManip.genMessageHeader (DIRECTION, messageOrdinal, IS_REPLY, NEED_VERIFICATION, IS_REPEATED));
             baos.write (BitManip.genCommandMessageHeader (COM, TYP, PARAMS.size ()));
             for (Pair <String, String> pair : PARAMS) {
                 byte [] name = pair.F.getBytes (StandardCharsets.UTF_8);
@@ -158,8 +192,9 @@ public class CommandMessage extends AbsAppMessage {
                 baos.write (value, 0, value.length);
             }
             
-            if (!Objects.isNull (REPLY)) {
-                baos.write (REPLY.toByteArray ());
+            final Message reply = getReply ();
+            if (!Objects.isNull (reply)) {
+                baos.write (reply.toByteArray ());
             }
             
             return baos.toByteArray ();

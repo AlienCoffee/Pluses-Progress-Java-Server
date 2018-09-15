@@ -9,7 +9,9 @@ import ru.shemplo.pluses.network.message.Message.DirectionWord;
 import ru.shemplo.pluses.network.message.app.CommandMessage;
 import ru.shemplo.pluses.network.message.app.CommandMessage.CommandWord;
 import ru.shemplo.pluses.network.message.app.CommandMessage.TypeWord;
+import ru.shemplo.pluses.struct.Pair;
 import ru.shemplo.pluses.util.BitManip;
+import ru.shemplo.pluses.util.Messanger;
 
 public class Run {
     
@@ -19,12 +21,14 @@ public class Run {
                             + " " + Integer.toBinaryString (Byte.toUnsignedInt (header [1])));
         
         System.out.println ("== Test of decomposition ==");
-        Message mes = new CommandMessage (DirectionWord.CtC, false, CommandWord.CREATE, TypeWord.INFO);
+        Pair <String, String> arg = Pair.mp ("AЯB", "ABЫЫQ");
+        Message mes = new CommandMessage (DirectionWord.CtC, false, CommandWord.CREATE, TypeWord.INFO, arg);
         byte [] array = mes.toByteArray ();
-        System.out.println ("Array: " + Arrays.toString (array));
+        System.out.println ("Array (" + array.length + " bytes): " + Arrays.toString (array));
 
         ByteArrayInputStream bais = new ByteArrayInputStream (array);
-        new CommandMessage (bais);
+        CommandMessage cmes = Messanger.readMessage (bais);
+        System.out.println ("D: " + cmes.getDirection ());
     }
     
 }

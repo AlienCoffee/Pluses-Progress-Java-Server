@@ -18,18 +18,8 @@ public abstract class AbsAppMessage extends AbsMessage implements AppMessage {
         super (reply, direction, replied, verifying, repeated);
     }
     
-    public AbsAppMessage (InputStream is) throws IOException {
-        super (is);
-    }
-    
-    @Override
-    public DirectionWord getDirection () {
-        return DIRECTION;
-    }
-    
-    @Override
-    public Message getReply () {
-        return REPLY;
+    public AbsAppMessage (byte [] header, InputStream is) throws IOException {
+        super (header);
     }
     
 }

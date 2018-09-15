@@ -1,6 +1,12 @@
 package ru.shemplo.pluses.network.message;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.Serializable;
+import java.lang.reflect.Constructor;
+
+import ru.shemplo.pluses.network.message.app.CommandMessage;
 
 public interface Message extends Serializable /* TOO MANY DOUBTS */ {
     
@@ -9,6 +15,45 @@ public interface Message extends Serializable /* TOO MANY DOUBTS */ {
     public static enum DirectionWord {
         StC /* Server to Client */, CtS /* Client to Server */,
         CtC /* Client to Client */, StS /* Server to Server */
+    }
+    
+    public static enum MessageWord {
+        
+        COMMAND (CommandMessage.class)
+        ;
+        
+        private final Class <? extends Message> TOKEN;
+        
+        private MessageWord (Class <? extends Message> token) {
+            this.TOKEN = token;
+        }
+        
+        public <R extends Message> R fromByteArray (byte [] header, InputStream is) throws IOException {
+            try {
+                Constructor <? extends Message> 
+                    constructor = TOKEN.getConstructor (byte [].class, InputStream.class);
+                
+                @SuppressWarnings ("unchecked")
+                R instance = (R) constructor.newInstance (header, is);
+                return instance;
+            } catch (Exception e) { throw new IOException (e); }
+        }
+        
+        public <R extends Message> R fromByteArray (byte [] header, byte [] bytes) throws IOException {
+            try {
+                Constructor <? extends Message> 
+                    constructor = TOKEN.getConstructor (byte [].class, byte [].class);
+                
+                @SuppressWarnings ("unchecked")
+                R instance = (R) constructor.newInstance (header, bytes);
+                return instance;
+            } catch (NoSuchMethodException nsme) {
+                /* One more attempt */
+                ByteArrayInputStream bais = new ByteArrayInputStream (bytes);
+                return fromByteArray (header, bais);
+            } catch (Exception e) { throw new IOException (e); }
+        }
+        
     }
     
     /*
@@ -72,6 +117,30 @@ public interface Message extends Serializable /* TOO MANY DOUBTS */ {
      * 
      */
     public Message getReply ();
+    
+    /**
+     * 
+     * 
+     * @return
+     * 
+     */
+    public boolean isReply ();
+    
+    /**
+     * 
+     * 
+     * @return
+     * 
+     */
+    public boolean needVerification ();
+    
+    /**
+     * 
+     * 
+     * @return
+     * 
+     */
+    public boolean isRepeated ();
     
     /**
      * 
