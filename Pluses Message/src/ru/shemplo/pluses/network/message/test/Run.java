@@ -11,7 +11,7 @@ import ru.shemplo.pluses.network.message.app.CommandMessage.CommandWord;
 import ru.shemplo.pluses.network.message.app.CommandMessage.TypeWord;
 import ru.shemplo.pluses.struct.Pair;
 import ru.shemplo.pluses.util.BitManip;
-import ru.shemplo.pluses.util.Messanger;
+import ru.shemplo.pluses.util.Messenger;
 
 public class Run {
     
@@ -27,7 +27,7 @@ public class Run {
         System.out.println ("Array (" + array.length + " bytes): " + Arrays.toString (array));
 
         ByteArrayInputStream bais = new ByteArrayInputStream (array);
-        CommandMessage cmes = Messanger.readMessage (bais);
+        CommandMessage cmes = Messenger.readMessage (bais);
         System.out.println ("D: " + cmes.getDirection ());
     }
     

@@ -199,8 +199,8 @@ public class CommandMessage extends AbsAppMessage {
             
             return baos.toByteArray ();
         } catch (IOException ioe) {
-            ioe.printStackTrace ();
-            return new byte [0];
+            if (DEBUG) { System.err.println (ioe); }
+            return null;
         }
     }
     
