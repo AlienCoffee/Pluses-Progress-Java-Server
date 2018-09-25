@@ -19,7 +19,8 @@ public interface Message extends Serializable /* TOO MANY DOUBTS */ {
     
     public static enum MessageWord {
         
-        COMMAND (CommandMessage.class)
+        COMMAND (CommandMessage.class),
+        CONTROL (ControlMessage.class)
         ;
         
         private final Class <? extends Message> TOKEN;
