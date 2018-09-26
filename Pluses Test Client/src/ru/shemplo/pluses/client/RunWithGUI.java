@@ -1,5 +1,6 @@
 package ru.shemplo.pluses.client;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import java.io.ByteArrayInputStream;
@@ -52,6 +53,8 @@ public class RunWithGUI extends Application {
         return result;
     }
 	
+	private final List <String> MESSAGES = new ArrayList <> ();
+	
 	private TextField hostInput, portInput;
 	private ListView <String> histView;
 	private TextArea messageArea;
@@ -82,6 +85,7 @@ public class RunWithGUI extends Application {
 						String message = t1.toString () 
 	                			+ "\n disconnected from host";
 	                	messageArea.setText (message);
+	                	MESSAGES.add (message);
 	                	
 	                    history.add (t1.toString () 
 	                    			+ " connection closed");
@@ -99,6 +103,7 @@ public class RunWithGUI extends Application {
                 		String message = t2.toString () 
                     			+ "\n disconnected from host";
                     	messageArea.setText (message);
+                    	MESSAGES.add (message);
                     	
                         history.add (t2.toString () 
                         			+ " connection closed");
@@ -119,6 +124,11 @@ public class RunWithGUI extends Application {
                 		String message = t3.toString () + "\n" 
                 				+ m.toJSON (new JSONObject ());
                     	messageArea.setText (message);
+                    	MESSAGES.add (message);
+                	} else {
+                		String message = t3.toString () + "\n" + tmp;
+                    	messageArea.setText (message);
+                    	MESSAGES.add (message);
                 	}
                 	
                 	String message = t3.toString () + " (<) " 
@@ -149,6 +159,10 @@ public class RunWithGUI extends Application {
 		
 		// // Connection
 		
+		Label connectLabel = new Label ("Connection to the host:");
+		leftCol.getChildren ().add (connectLabel);
+		VBox.setMargin (connectLabel, new Insets (10, 0, 0, 10));
+		
 		VBox connectCol = new VBox ();
 		leftCol.getChildren ().add (connectCol);
 		connectCol.setAlignment (Pos.CENTER_RIGHT);
@@ -164,7 +178,8 @@ public class RunWithGUI extends Application {
 		
 		hostInput = new TextField ("shemplo.ru");
 		hostHorz.getChildren ().add (hostInput);
-		hostInput.setMinWidth (200);
+		HBox.setMargin (hostInput, new Insets (0, 0, 0, 5));
+		hostInput.setMinWidth (250);
 		
 		HBox portHorz = new HBox ();
 		connectCol.getChildren ().add (portHorz);
@@ -176,7 +191,8 @@ public class RunWithGUI extends Application {
 		
 		portInput = new TextField ("1999");
 		portHorz.getChildren ().add (portInput);
-		portInput.setMinWidth (200);
+		HBox.setMargin (portInput, new Insets (0, 0, 0, 5));
+		portInput.setMinWidth (250);
 		
 		Button connectButton = new Button ("Connect");
 		connectCol.getChildren ().add (connectButton);
@@ -186,6 +202,7 @@ public class RunWithGUI extends Application {
 		
 		Label histLabel = new Label ("History: ");
 		leftCol.getChildren ().add (histLabel);
+		VBox.setMargin (histLabel, new Insets (0, 0, 0, 10));
 		
 		histView = new ListView <> ();
 		leftCol.getChildren ().add (histView);
@@ -227,6 +244,14 @@ public class RunWithGUI extends Application {
 		connectButton.setOnMouseClicked (me -> connect ());
 		hostInput.setOnAction (ae -> connect ());
 		portInput.setOnAction (ae -> connect ());
+		
+		histView.getSelectionModel ().selectedItemProperty ()
+				.addListener (ce -> {
+			int index = histView.getSelectionModel ().getSelectedIndex ();
+			if (index < 0 || MESSAGES.size () <= index) { return; }
+			
+			messageArea.setText (MESSAGES.get (index));
+		});
 		
 		comInput.setOnAction (ae -> {
 			Socket socket = this.socket;
@@ -271,6 +296,7 @@ public class RunWithGUI extends Application {
     				string = t.toString () + "\n" 
     						+ message.toJSON (new JSONObject ());
     				messageArea.setText (string);
+    				MESSAGES.add (string);
 	            });
 	            
 	            comInput.setText ("");
@@ -284,6 +310,7 @@ public class RunWithGUI extends Application {
     				
     				string = t.toString () + "\n " + ioe.toString ();
     				messageArea.setText (string);
+    				MESSAGES.add (string);
 	            });
 			}
 		});
@@ -321,6 +348,7 @@ public class RunWithGUI extends Application {
 			
 			List <String> list = histView.getItems ();
 			messageArea.setText (message);
+			MESSAGES.add (message);
 			list.add (message);
 		} catch (IOException ioe) {
 			messageArea.setText ("Connection failed:\n" + ioe.toString ());
