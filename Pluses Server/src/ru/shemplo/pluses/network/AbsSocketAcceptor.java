@@ -17,84 +17,33 @@ import ru.shemplo.pluses.log.Log;
 public abstract class AbsSocketAcceptor implements Acceptor {
 
 	private final ServerSocket LISTENER;
-	private final Thread ACCEPTOR;
 
-	private final ConcurrentLinkedQueue <Socket> WAIT_HANDSHAKE;
-	private final Set <Thread> THREADS;
+	private final ConcurrentLinkedQueue <Socket> WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
+	
+	private final int THREADS_COUNT = 5;
+	private final Set <Thread> THREADS = new HashSet <> ();
 	private final Runnable TASK;
+	
 	
 	public AbsSocketAcceptor (int port, int threads) throws IOException {
 		this.LISTENER = new ServerSocket (port, 10);
 		LISTENER.setSoTimeout (10000); // 10 seconds
 		
-		this.WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
-		this.THREADS = new HashSet <> ();
 		this.TASK = () -> {
-			int tries = 0;
-			while (Run.isRunning ()) {
-				Socket socket = WAIT_HANDSHAKE.poll ();
-				if (Objects.isNull (socket)) {
-					try {
-						Thread.sleep ((tries + 1) * 1000); // n * 10 seconds
-						
-						// FIXME: this is unknown error (no progress after death)
-						/*
-						synchronized (THREADS) {
-							if (WAIT_HANDSHAKE.size () == 0 
-								&& THREADS.size () > 1 && tries >= 5) {
-							    System.out.println ("Hand thread died (" + thread.getId () + ")");
-							    System.out.println ("Threads: " + THREADS);
-								// Thread has nothing to do -> remove it
-								THREADS.remove (thread);
-								System.out.println ("Message after death: " + THREADS);
-								return;
-							}
-							
-							tries += 1; // One more useless loop
-							if (THREADS.size () == 1) {
-								tries = 1;
-							}
-						}
-						*/
-					} catch (InterruptedException ie) {
-						return;
-					}
-				} else {
-					String identifier = identifier ();
-					if (handshake (identifier, socket)) {
-						// Socket processing is over
-						onSocketReady (identifier, socket);
-					}
-					
-					// Keeping this thread alive
-					tries = 0;
-				}
-			}
-		};
-		
-		synchronized (THREADS) {
-			Thread first = new Thread (TASK);
-			THREADS.add (first);
-			first.start ();
-		}
-		
-		this.ACCEPTOR = new Thread (() -> {
-			while (Run.isRunning ()) {
+			while (true) {
 				try {
-					// Trying to accept as much as possible
-					// and then make a handshake...
-					WAIT_HANDSHAKE.add (LISTENER.accept ());
+					Socket socket = LISTENER.accept();
 					
-					// Help threads can die and here is an
-					// opportunity to add new if it's needed
-					synchronized (THREADS) {
-						if (WAIT_HANDSHAKE.size () > 3 
-							&& THREADS.size () < threads) {
-							THREADS.add (new Thread (TASK));
-						}
+					if (socket != null) {
+						WAIT_HANDSHAKE.add (socket);
+						System.out.println ("New connection accepted: " + socket);
+						continue; 
 					}
 				} catch (SocketTimeoutException ste) {
-					// nothing to do -> go to new loop
+					if (Thread.interrupted ()) {
+						Thread.currentThread ().interrupt ();
+						return; 
+					}
 				} catch (IOException ioe) {
 					if (LISTENER.isClosed () || !LISTENER.isBound ()) {
 						String message = "Main acceptor thread is stoped";
@@ -108,10 +57,26 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 						return;
 					}
 				}
+				
+				
+				Socket socket = WAIT_HANDSHAKE.poll();
+				if (socket != null) {
+					String id = identifier();
+					if (handshake(id, socket)) {
+						onSocketReady(id, socket);
+					}
+				}
 			}
-		});
-		ACCEPTOR.setName ("Main-Acceptor-Thread");
-		ACCEPTOR.start ();
+		};
+		
+		synchronized (THREADS) {
+			for (int i = 0; i < THREADS_COUNT; i++) {
+				String name = "Connections-Acceptor-Thread-" + (i + 1);
+				Thread thread = new Thread (TASK, name);
+				THREADS.add(thread);
+				thread.start ();
+			}
+		}
 	}
 	
 	protected String identifier () {
@@ -120,13 +85,26 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 	
 	@Override
 	public void close () throws Exception {
-	    synchronized (THREADS) {
-	        ACCEPTOR.join ();
-        }
-	    
-	    for (Thread thread : THREADS) { 
-            thread.join (); 
-        }
+		synchronized (THREADS) {
+			for (Thread thread : THREADS) {
+				if (thread == null) { continue; }
+				
+				thread.interrupt ();
+			}
+			
+			for (Thread thread : THREADS) {
+				if (thread == null) { continue; }
+				
+				try {
+					thread.join (5000); // 5 seconds
+					THREADS.remove (thread);
+					System.out.println ("Thread " + thread.getName () + " closed");
+				} catch (InterruptedException ie) {
+					System.err.println ("Thread " + thread.getName () 
+						+ " is not closed: " + ie.getMessage ());
+				}
+			}
+		}
 	}
 	
 }
