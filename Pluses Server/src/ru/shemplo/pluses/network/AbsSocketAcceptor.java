@@ -6,14 +6,13 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.util.HashSet;
-import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.LinkedBlockingQueue;
+
 import javafx.util.Pair;
 
 import org.apache.commons.lang.RandomStringUtils;
 
-import ru.shemplo.pluses.Run;
 import ru.shemplo.pluses.log.Log;
 
 public abstract class AbsSocketAcceptor implements Acceptor {
@@ -23,7 +22,7 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 	private final int HANDSHAKE_TIMEOUT = 10000;
 	
 	private final ServerSocket LISTENER;
-	private final ConcurrentLinkedQueue <Pair<Socket, Long>> WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
+	private final LinkedBlockingQueue <Pair<Socket, Long>> WAIT_HANDSHAKE = new LinkedBlockingQueue <> ();
 
 	private final Set <Thread> THREADS = new HashSet <> ();
 	private final Runnable ACCEPTOR_TASK, HANDSHAKE_TASK;
@@ -65,7 +64,13 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 		
 		this.HANDSHAKE_TASK = () -> {
 			while (true) {
-				Pair<Socket, Long> entry = WAIT_HANDSHAKE.poll();
+				Pair<Socket, Long> entry = null;
+				try {
+					entry = WAIT_HANDSHAKE.take();
+				} catch (InterruptedException e) {
+					e.printStackTrace();
+				}
+				
 				if (entry == null) continue;
 				
 				Socket socket = entry.getKey();
