@@ -154,13 +154,9 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 		
 		while (!WAIT_HANDSHAKE.isEmpty()) {
 			Pair<Socket, Long> entry = WAIT_HANDSHAKE.poll();
-			if (entry == null) return;
+			if (entry == null) continue;
 			
-			Socket socket = entry.getKey();
-			
-			OutputStreamWriter osw = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
-	        osw.write("0", 0, 1);
-			socket.close();
+			entry.getKey().close();
 		}
 	}
 	
