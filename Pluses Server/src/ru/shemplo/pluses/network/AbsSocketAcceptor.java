@@ -1,6 +1,7 @@
 package ru.shemplo.pluses.network;
 
 import java.io.IOException;
+import java.io.OutputStreamWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
@@ -21,14 +22,11 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 	private final int SERVER_TIMEOUT = 1000;
 	private final int HANDSHAKE_TIMEOUT = 10000;
 	
-	
 	private final ServerSocket LISTENER;
-	private final ConcurrentLinkedQueue <Pair<Socket, Pair<String, Long>>> WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
+	private final ConcurrentLinkedQueue <Pair<Socket, Long>> WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
 
 	private final Set <Thread> THREADS = new HashSet <> ();
-	
 	private final Runnable ACCEPTOR_TASK, HANDSHAKE_TASK;
-	
 	
 	public AbsSocketAcceptor (int port, int threads) throws IOException {
 		this.LISTENER = new ServerSocket (port, 10);
@@ -40,7 +38,7 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 					Socket socket = LISTENER.accept();
 					
 					if (socket != null) {
-						WAIT_HANDSHAKE.add (new Pair<>(socket, new Pair<>(null, null)));
+						WAIT_HANDSHAKE.add (new Pair<>(socket, null));
 						System.out.println ("New connection accepted: " + socket);
 						continue; 
 					}
@@ -67,30 +65,24 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 		
 		this.HANDSHAKE_TASK = () -> {
 			while (true) {
-				Pair<Socket, Pair<String, Long>> entry = WAIT_HANDSHAKE.poll();
+				Pair<Socket, Long> entry = WAIT_HANDSHAKE.poll();
 				if (entry == null) continue;
 				
 				Socket socket = entry.getKey();
-				Long time = entry.getValue().getValue();
-				String id = entry.getValue().getKey();
-				
-				if (time == null) {
-					time = System.nanoTime ();
-					id = identifier();
-				}
-				
 				try {
-					if (handshake(id, socket)) {
+					String hash = "" + socket.hashCode();
+					if (handshake(hash, socket)) {
 						//Handshake completed
-						onSocketReady(id, socket);
+						onSocketReady(hash, socket);
 					} else {
 						//not yet completed
+						long time = entry.getValue() != null ? entry.getValue() : System.nanoTime();
 						long currentTime = System.nanoTime(), 
 							 overTime = (currentTime - time) / 1_000_000;
 						
 						if (overTime < HANDSHAKE_TIMEOUT) {
 							//we can wait
-							WAIT_HANDSHAKE.add(new Pair<> (socket, new Pair<> (id, time)));
+							WAIT_HANDSHAKE.add(new Pair<> (socket, time));
 						} else {
 							//Timeout exceeded
 							throw new SocketTimeoutException ("Handshake not finished");
@@ -153,6 +145,17 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 						+ " is not closed: " + ie.getMessage ());
 				}
 			}
+		}
+		
+		while (!WAIT_HANDSHAKE.isEmpty()) {
+			Pair<Socket, Long> entry = WAIT_HANDSHAKE.poll();
+			if (entry == null) return;
+			
+			Socket socket = entry.getKey();
+			
+			OutputStreamWriter osw = new OutputStreamWriter(socket.getOutputStream(), "UTF-8");
+	        osw.write("0", 0, 1);
+			socket.close();
 		}
 	}
 	
