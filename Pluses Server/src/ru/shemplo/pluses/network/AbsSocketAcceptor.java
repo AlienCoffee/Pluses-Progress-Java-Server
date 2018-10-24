@@ -68,7 +68,7 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 				try {
 					entry = WAIT_HANDSHAKE.take();
 				} catch (InterruptedException e) {
-					e.printStackTrace();
+					return;
 				}
 				
 				if (entry == null) continue;
