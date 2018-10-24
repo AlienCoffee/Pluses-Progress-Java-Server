@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import javafx.util.Pair;
 
 import org.apache.commons.lang.RandomStringUtils;
 
@@ -15,27 +16,31 @@ import ru.shemplo.pluses.Run;
 import ru.shemplo.pluses.log.Log;
 
 public abstract class AbsSocketAcceptor implements Acceptor {
-
-	private final ServerSocket LISTENER;
-
-	private final ConcurrentLinkedQueue <Socket> WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
+	private final int ACCEPTOR_THREADS_COUNT = 1;
+	private final int HANDSHAKE_THREADS_COUNT = 1;
+	private final int SERVER_TIMEOUT = 1000;
+	private final int HANDSHAKE_TIMEOUT = 10000;
 	
-	private final int THREADS_COUNT = 5;
+	
+	private final ServerSocket LISTENER;
+	private final ConcurrentLinkedQueue <Pair<Socket, Pair<String, Long>>> WAIT_HANDSHAKE = new ConcurrentLinkedQueue <> ();
+
 	private final Set <Thread> THREADS = new HashSet <> ();
-	private final Runnable TASK;
+	
+	private final Runnable ACCEPTOR_TASK, HANDSHAKE_TASK;
 	
 	
 	public AbsSocketAcceptor (int port, int threads) throws IOException {
 		this.LISTENER = new ServerSocket (port, 10);
-		LISTENER.setSoTimeout (10000); // 10 seconds
+		LISTENER.setSoTimeout (SERVER_TIMEOUT); // 10 seconds
 		
-		this.TASK = () -> {
+		this.ACCEPTOR_TASK = () -> {
 			while (true) {
 				try {
 					Socket socket = LISTENER.accept();
 					
 					if (socket != null) {
-						WAIT_HANDSHAKE.add (socket);
+						WAIT_HANDSHAKE.add (new Pair<>(socket, new Pair<>(null, null)));
 						System.out.println ("New connection accepted: " + socket);
 						continue; 
 					}
@@ -57,25 +62,69 @@ public abstract class AbsSocketAcceptor implements Acceptor {
 						return;
 					}
 				}
+			}
+		};
+		
+		this.HANDSHAKE_TASK = () -> {
+			while (true) {
+				Pair<Socket, Pair<String, Long>> entry = WAIT_HANDSHAKE.poll();
+				if (entry == null) continue;
 				
+				Socket socket = entry.getKey();
+				Long time = entry.getValue().getValue();
+				String id = entry.getValue().getKey();
 				
-				Socket socket = WAIT_HANDSHAKE.poll();
-				if (socket != null) {
-					String id = identifier();
+				if (time == null) {
+					time = System.nanoTime ();
+					id = identifier();
+				}
+				
+				try {
 					if (handshake(id, socket)) {
+						//Handshake completed
 						onSocketReady(id, socket);
+					} else {
+						//not yet completed
+						long currentTime = System.nanoTime(), 
+							 overTime = (currentTime - time) / 1_000_000;
+						
+						if (overTime < HANDSHAKE_TIMEOUT) {
+							//we can wait
+							WAIT_HANDSHAKE.add(new Pair<> (socket, new Pair<> (id, time)));
+						} else {
+							//Timeout exceeded
+							throw new SocketTimeoutException ("Handshake not finished");
+						}
+					}
+					
+				} catch (IOException ioe) {
+					//Handshake failed for some reason, dropping
+					try {
+						socket.close();
+					} catch (IOException e) {
+						e.printStackTrace();
 					}
 				}
 			}
 		};
 		
+		
+		for (int i = 0; i < ACCEPTOR_THREADS_COUNT; i++) {
+			String name = "Connections-Acceptor-Thread-" + (i + 1);
+			addThread(ACCEPTOR_TASK, name);
+		}
+		
+		for (int i = 0; i < HANDSHAKE_THREADS_COUNT; i++) {
+			String name = "Connections-Handshake-Thread-" + (i + 1);
+			addThread(HANDSHAKE_TASK, name);
+		}
+	}
+	
+	private void addThread(Runnable task, String name) {
 		synchronized (THREADS) {
-			for (int i = 0; i < THREADS_COUNT; i++) {
-				String name = "Connections-Acceptor-Thread-" + (i + 1);
-				Thread thread = new Thread (TASK, name);
-				THREADS.add(thread);
-				thread.start ();
-			}
+			Thread thread = new Thread (task, name);
+			THREADS.add(thread);
+			thread.start ();
 		}
 	}
 	
