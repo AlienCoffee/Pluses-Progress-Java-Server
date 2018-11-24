@@ -5,6 +5,7 @@ import static ru.shemplo.pluses.network.message.ControlMessage.ControlType.*;
 
 import java.util.Objects;
 import java.util.StringTokenizer;
+import java.util.function.Consumer;
 
 import ru.shemplo.pluses.Run;
 import ru.shemplo.pluses.log.Log;
@@ -12,8 +13,43 @@ import ru.shemplo.pluses.network.message.CommandMessage;
 import ru.shemplo.pluses.network.message.ControlMessage;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.pool.AppConnection;
+import ru.shemplo.pluses.struct.GroupsService;
 
 public class CommandHandler {
+    
+    // XXX: non-static is impossible (try to fix this)
+    private static GroupsService groupsService;
+    
+    @SuppressWarnings ("unused")
+    private enum RouteSection implements RoutableSection {
+        
+        CREATE_GROUP   (groupsService::createGroup),
+        CREATE_STUDENT (__ -> {}),
+        CREATE_TASK    (__ -> {}),
+        CREATE_TOPIC   (__ -> {}),
+        
+        CREATE (
+            CREATE_GROUP, CREATE_STUDENT, CREATE_TASK, CREATE_TOPIC
+        );
+        
+        private RouteSection () {
+            
+        }
+        
+        private RouteSection (RouteSection ... sections) {
+            
+        }
+        
+        private RouteSection (Consumer <RoutableBundle> consumer) {
+            
+        }
+
+        @Override
+        public void route (RoutableBundle bundle) {
+            
+        }
+        
+    }
     
 	public static void run (CommandMessage mes, AppConnection connection) {
 		if (Objects.isNull (mes) || !CTS.equals (mes.getDirection ())) { 
