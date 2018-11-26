@@ -19,6 +19,7 @@ import ru.shemplo.pluses.struct.OrganizationHistory;
 public class Run {
 
 	public static final String CONFIG_NAME = "config.ini";
+	public static final String HELP_NAME = "help.txt";
 	
 	public static final Random RANDOM = new Random ();
 	

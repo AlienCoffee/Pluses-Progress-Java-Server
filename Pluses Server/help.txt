@@ -1,0 +1,39 @@
+Available commands: 
+
+How to understand commands bellow:
+* first word       - command key word
+* second (as rule) - type of affecting object
+* -[some text]     - parameter name
+* -?[some text]    - optional parameter name
+
+Value of parameter is substring that is between 
+two parameters' names (or end of line)
+
+In brackets after parameter name his type
+S - string, I - integer, D - datetime
+
+[section CREATE]
+1. create group -title(S) -?comment(S) -?created(D)
+2. create student -name.first(S)
+3. create topic -title(S) -?comment(S) -?author(I)
+4. create task -topic(I) -title(S)
+
+[section INSERT]
+1. insert student -group(I) -student(I)
+2. insert topic -group(I) -topic(I)
+3. insert try -student(I) -group(I) -topic(I) -task(I) -verdict(I) -teacher(I)
+
+[section SELECT]
+1. select groups -?id(I)
+2. select info -about(S) -id(I)
+3. select topics -?id(I)
+4. select students -?id(I)
+5. select tasks -topic(I)
+
+[section MOVE]
+1. move student -from(I) -to(I) -id(I)
+
+[section UPDATE]
+1. update task -topic(I) -id(I) -title(S)
+
+Also available commands: exit, ping, stop, help
