@@ -19,7 +19,7 @@ import ru.shemplo.pluses.network.pool.AppConnection;
 
 public class HelpHandler {
 	static private AtomicLong lastUpdated = new AtomicLong(0);
-	static private String commandsHelp;
+	static private volatile String commandsHelp;
 	
 	public static void runHelp(AppConnection connection) throws IOException {
 		tryUpdateHelpContent();
@@ -31,21 +31,23 @@ public class HelpHandler {
 		File hf = new File(HELP_NAME);
 		Long modified = hf.lastModified(), updated = lastUpdated.get();
 
-		if (updated >= modified) return;
-		
-		try(BufferedReader br = Files.newBufferedReader(hf.toPath(), StandardCharsets.UTF_8)) {
-		    StringBuilder sb = new StringBuilder();
-		    String line = br.readLine();
+		if (updated == Long.MIN_VALUE || updated >= modified) return;	
+		if (lastUpdated.compareAndSet(updated, Long.MIN_VALUE)) {
+			try(BufferedReader br = Files.newBufferedReader(hf.toPath(), StandardCharsets.UTF_8)) {
+			    StringBuilder sb = new StringBuilder();
+			    String line = br.readLine();
 
-		    while (line != null) {
-		        sb.append(line);
-		        sb.append(System.lineSeparator());
-		        line = br.readLine();
-		    }
-		    
-		    if (lastUpdated.compareAndSet(updated, modified)) {
-		    	commandsHelp = sb.toString();
-		    }
-		} 
+			    while (line != null) {
+			        sb.append(line);
+			        sb.append(System.lineSeparator());
+			        line = br.readLine();
+			    }
+			    
+			    if (lastUpdated.compareAndSet(Long.MIN_VALUE, modified)) {
+			    	commandsHelp = sb.toString();
+			    }
+			} 
+		}
+
 	}
 }
