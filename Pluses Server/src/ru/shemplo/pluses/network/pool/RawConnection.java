@@ -11,10 +11,9 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import ru.shemplo.pluses.log.Log;
+import ru.shemplo.pluses.network.message.ControlMessage;
 import ru.shemplo.pluses.network.message.AppMessage;
 import ru.shemplo.pluses.network.message.CommandMessage;
-import ru.shemplo.pluses.network.message.ControlMessage;
-import ru.shemplo.pluses.network.message.ControlMessage.ControlType;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.util.BytesManip;
 
@@ -52,7 +51,7 @@ public class RawConnection extends AbsConnection {
                         root.append ("content", message);
                         root.append ("timestamp", time);
                         
-                        AppMessage error = new ControlMessage (STC, ControlType.ERROR, 0, message);
+                        AppMessage error = new ControlMessage(STC, ControlMessage.ControlType.ERROR, 0, message);
                         Log.error (RawConnection.class.getSimpleName (), message);
                         Log.error (RawConnection.class.getSimpleName (), jsone);
                         sendMessage (error);
@@ -85,6 +84,11 @@ public class RawConnection extends AbsConnection {
                 isConnected = false;
             }
         }
+    }
+
+    @Override
+    public boolean hasInput() {
+        return false;
     }
 
     @Override

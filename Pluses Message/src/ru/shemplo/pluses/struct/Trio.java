@@ -3,7 +3,11 @@ package ru.shemplo.pluses.struct;
 import java.io.Serializable;
 import java.util.Objects;
 
-public class Trio <F, S, T> implements Serializable {
+import org.json.JSONObject;
+
+import ru.shemplo.pluses.network.message.HasJSON;
+
+public class Trio <F, S, T> implements Serializable, HasJSON {
     
     /**
      * 
@@ -35,6 +39,12 @@ public class Trio <F, S, T> implements Serializable {
         return (Objects.isNull (F) ? Objects.isNull (trio.F) : F.equals (trio.F))
                 && (Objects.isNull (S) ? Objects.isNull (trio.S) : S.equals (trio.S))
                 && (Objects.isNull (T) ? Objects.isNull (trio.T) : T.equals (trio.T));
+    }
+
+    @Override
+    public JSONObject toJSON (JSONObject root) {
+        root.put ("trio", new Object [] {F, S, T});
+        return root;
     }
     
     public static <F, S, T> Trio <F, S, T> mt (F f, S s, T t) {
