@@ -12,8 +12,7 @@ import java.net.SocketTimeoutException;
 
 import javafx.util.Pair;
 
-import org.apache.commons.lang.RandomStringUtils;
-
+import org.apache.commons.lang3.RandomStringUtils;
 import ru.shemplo.pluses.log.Log;
 
 public abstract class AbsSocketAcceptor implements Acceptor {

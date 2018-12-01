@@ -15,7 +15,7 @@ import ru.shemplo.pluses.network.message.PPMessage.Ping;
 
 public abstract class AbsConnection implements AppConnection {
     
-    protected final ConcurrentLinkedQueue <AppMessage> 
+    protected final ConcurrentLinkedQueue <AppMessage>
         INPUT = new ConcurrentLinkedQueue <> ();
     protected final String IDENTIFIER;
     
