@@ -2,7 +2,7 @@ package ru.shemplo.pluses.logic;
 
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.pool.AppConnection;
-import ru.shemplo.snowball.stuctures.Pair;
+import ru.shemplo.pluses.struct.Pair;
 
 public class RoutableBundle extends Pair <Message, AppConnection> {
 
