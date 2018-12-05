@@ -12,7 +12,7 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.StringEscapeUtils;
+import org.apache.commons.text.StringEscapeUtils;
 import ru.shemplo.pluses.network.message.ControlMessage;
 import ru.shemplo.pluses.network.message.Message;
 import ru.shemplo.pluses.network.message.AppMessage;
