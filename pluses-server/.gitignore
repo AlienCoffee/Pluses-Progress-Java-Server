@@ -1,0 +1,15 @@
+/bin/
+/.settings/
+/log/
+/lib/
+/build/
+/topics/
+
+.project
+.classpath
+
+*.jar
+*.bin
+*.ini
+*.cmd
+*.zip
