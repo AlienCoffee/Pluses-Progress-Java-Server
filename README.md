@@ -1,5 +1,5 @@
 # Pluses Progress server
-[![Build Status](https://travis-ci.com/AlienCoffee/Pluses-Progress-Java-Server.svg?branch=master)](https://travis-ci.com/AlienCoffee/Pluses-Progress-Java-Server)
+[![Build Status](https://travis-ci.com/AlienCoffee/Pluses-Progress-Java-Server.svg?branch=master)](https://travis-ci.com/AlienCoffee/Pluses-Progress-Java-Server) [![Coverage Status](https://codecov.io/gh/AlienCoffee/Pluses-Progress-Java-Server/branch/master/graph/badge.svg)](https://codecov.io/gh/AlienCoffee/Pluses-Progress-Java-Server)
 
 Pluses Progress is an application that simplifies the student review and grading process.
 It is especially designed to work in conditions of limited access to the Internet.

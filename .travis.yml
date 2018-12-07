@@ -1,3 +1,9 @@
 language: java
 
+# faster builds
+sudo: false
+
 script: mvn test
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
