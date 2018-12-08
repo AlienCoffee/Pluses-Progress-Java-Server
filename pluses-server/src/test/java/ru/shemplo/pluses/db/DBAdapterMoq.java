@@ -14,7 +14,7 @@ public class DBAdapterMoq extends MySQLAdapter {
         )));
     }
     
-    public DBAdapterMoq () { super (fakeColumns); }
+    public DBAdapterMoq () { super (null, fakeColumns); }
     
     @Override
     public boolean testConnection () {
@@ -33,7 +33,7 @@ public class DBAdapterMoq extends MySQLAdapter {
     
     @Override
     public int runCountInArray (String query, List <?> list) {
-        return 0;
+        return -1;
     }
     
     @Override

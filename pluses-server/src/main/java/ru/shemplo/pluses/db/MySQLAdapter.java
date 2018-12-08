@@ -17,6 +17,7 @@ import java.util.Optional;
 import java.util.Set;
 
 import ru.shemplo.pluses.log.Log;
+import ru.shemplo.pluses.util.SQLUtil;
 
 public class MySQLAdapter implements AutoCloseable {
  
@@ -88,8 +89,8 @@ public class MySQLAdapter implements AutoCloseable {
         
     }
     
-    MySQLAdapter (Map <String, Set <String>> columns) {
-        this.CONNECTION = null; this.COLUMNS = columns;
+    MySQLAdapter (Connection connection, Map <String, Set <String>> columns) {
+        this.CONNECTION = connection; this.COLUMNS = columns;
     }
     
     public Connection getDB () {
@@ -129,20 +130,9 @@ public class MySQLAdapter implements AutoCloseable {
         }
         
         Map <String, Integer> map = new HashMap <> ();
-        StringBuilder sb = new StringBuilder ("(");
-        for (int i = 0; i < list.size (); i++) {
-            sb.append ("'");
-            sb.append ("" + list.get (i));
-            map.put ("" + list.get (i), i);
-            sb.append ("'");
-            if (i < list.size () - 1) {
-                sb.append (",");
-            }
-        }
-        sb.append (")");
         
         try {
-            query = query.replace ("?", sb.toString ().trim ());
+            query = query.replace ("?", SQLUtil.toArray (list, '\''));
             PreparedStatement statement = CONNECTION.prepareStatement (query);
             ResultSet answer = statement.executeQuery ();
             List <R> fetch = new ArrayList <> ();
@@ -164,20 +154,8 @@ public class MySQLAdapter implements AutoCloseable {
             throw new IllegalStateException (message);
         }
         
-        // convert list to ('1', '2', 'a', '#')
-        StringBuilder sb = new StringBuilder ("(");
-        for (int i = 0; i < list.size (); i++) {
-            sb.append ("'");
-            sb.append ("" + list.get (i));
-            sb.append ("'");
-            if (i < list.size () - 1) {
-                sb.append (",");
-            }
-        }
-        sb.append (")");
-        
         try {
-            query = query.replace ("?", sb.toString ().trim ());
+            query = query.replace ("?", SQLUtil.toArray (list, '\''));
             PreparedStatement statement = CONNECTION.prepareStatement (query);
             ResultSet answer = statement.executeQuery ();
             if (answer.next ()) {

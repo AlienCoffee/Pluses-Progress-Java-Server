@@ -14,6 +14,8 @@ import org.junit.jupiter.api.Test;
 
 import ru.shemplo.pluses.db.DBAdapterMoq;
 import ru.shemplo.pluses.db.MySQLAdapter;
+import ru.shemplo.pluses.struct.OrganizationHistory;
+import ru.shemplo.pluses.struct.Pair;
 import ru.shemplo.pluses.util.SQLUtil;
 
 public class MainTestUnit {
@@ -92,6 +94,56 @@ public class MainTestUnit {
                 assertEquals (tmp, time / 1000);
             }
             
+        }
+        
+    }
+    
+    @Nested
+    public class TestOrgHistory {
+        
+        @Test
+        public void testInit () {
+            boolean inited = false;
+            try {                
+                OrganizationHistory.init ();
+                inited = true;
+            } catch (Exception e) {}
+            
+            assertFalse (inited);
+        }
+        
+        @Test
+        public void testCreateStudent () {
+            OrganizationHistory.createStudent (0);
+            assertTrue (OrganizationHistory.existsStudent (0));
+        }
+        
+        
+        @Test
+        public void testCreateGroup () {
+            OrganizationHistory.createGroup (1);
+            assertFalse (OrganizationHistory.existsGroup (0));
+            assertTrue (OrganizationHistory.existsGroup (1));
+        }
+        
+        @Test
+        public void testGetGroups () {
+            List <Integer> groups = OrganizationHistory.getGroups ();
+            assertNotNull (groups);
+        }
+        
+        @Test
+        public void testCreateTopic () {
+            OrganizationHistory.createTopic (2);
+            assertFalse (OrganizationHistory.existsTopic (0));
+            assertFalse (OrganizationHistory.existsTopic (1));
+            assertTrue (OrganizationHistory.existsTopic (2));
+        }
+        
+        @Test
+        public void testGetTopics () {
+            List <Pair <Integer, Integer>> topics = OrganizationHistory.getToics ();
+            assertNotNull (topics);
         }
         
     }

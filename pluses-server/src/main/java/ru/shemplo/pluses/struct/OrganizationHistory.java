@@ -44,6 +44,10 @@ public class OrganizationHistory {
         STUDENTS.clear (); TOPICS.clear ();
         
         Connection mysql = MySQLAdapter.getInstance ().getDB ();
+        if (mysql == null) {
+            throw new IllegalStateException ("Connection is null");
+        }
+        
         try {
             String query = "SELECT `id` FROM `students` ORDER BY `id` ASC";
             Statement statement = mysql.createStatement ();
