@@ -2,6 +2,7 @@ package ru.shemplo.pluses.util;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
@@ -54,14 +55,14 @@ public class SQLUtil {
         return sb.toString ();
     }
     
-    private static DateFormat DATETIME_FORMAT = new SimpleDateFormat ("YYYY-LL-dd HH:mm:ss");
+    private static DateFormat DATETIME_FORMAT = new SimpleDateFormat ("yyyy-MM-dd HH:mm:ss");
     
     public static String getDatetime (long time) {
         return DATETIME_FORMAT.format (new Date (time));
     }
     
     public static String getDatetime () {
-        return getDatetime (System.currentTimeMillis ());
+        return getDatetime (Instant.now ().toEpochMilli ());
     }
     
 }

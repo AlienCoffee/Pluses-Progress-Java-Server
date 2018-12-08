@@ -22,6 +22,17 @@ public class MySQLAdapter implements AutoCloseable {
  
     private static MySQLAdapter ADAPTER;
     
+    public static void setInstance (MySQLAdapter instance) {
+        synchronized (MySQLAdapter.class) {
+            if (MySQLAdapter.ADAPTER != null) {
+                try   { ADAPTER.close (); } 
+                catch (Exception e) {     }
+            }
+            
+            ADAPTER = instance;
+        }
+    }
+    
     public static MySQLAdapter getInstance () {
         if (Objects.isNull (ADAPTER) 
             || !ADAPTER.testConnection ()) {
@@ -75,6 +86,10 @@ public class MySQLAdapter implements AutoCloseable {
             COLUMNS.put (table, cols);
         }
         
+    }
+    
+    MySQLAdapter (Map <String, Set <String>> columns) {
+        this.CONNECTION = null; this.COLUMNS = columns;
     }
     
     public Connection getDB () {
