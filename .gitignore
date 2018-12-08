@@ -85,6 +85,11 @@ fabric.properties
 # Sonarlint plugin
 .idea/sonarlint
 
+# Eclipse
+/.settings/
+.classpath
+.project
+
 ### Java ###
 # Compiled class file
 *.class
@@ -123,3 +128,4 @@ buildNumber.properties
 .mvn/wrapper/maven-wrapper.jar
 
 # End of https://www.gitignore.io/api/java,maven,intellij
+/bin/
